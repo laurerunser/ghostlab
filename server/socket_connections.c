@@ -1,4 +1,4 @@
-#include "socket_connections.h"
+#include "include/socket_connections.h"
 
 /* Sends a TCP message. Makes sure all the message is sent through,
  * even if the message is very big.
@@ -11,12 +11,12 @@ void send_all(int sock_fd, char *buf, int len) {
     int bytes_left = len; // how many we have left to send
     int n;
     while (total < len) { // keep sending until all the message went through
-        n = send(sock_fd, buf + total, bytesleft, 0);
+        n = send(sock_fd, buf + total, bytes_left, 0);
         if (n == -1) {
             break;
         }
         total += n;
-        bytesleft -= n;
+        bytes_left -= n;
     }
 }
 
