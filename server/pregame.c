@@ -5,14 +5,36 @@ extern game_data games[];
 extern pthread_mutex_t mutex;
 
 void *handle_client_first_connection(void *args_p) {
-    struct thread_arguments *args = (struct thread_arguments *)args_p;
+    struct thread_arguments *args = (struct thread_arguments *) args_p;
     int sock_fd = args->sock_fd;
 
     // send the list of games
     send_list_of_games(sock_fd);
-    fprintf(stderr, "GAMES and OGAME message sent to fd = %d", sock_fd);
+    fprintf(stderr, "GAMES and OGAME message sent to fd = %d\n", sock_fd);
 
-    return NULL; // return NULL at the end
+    // wait for player's messages
+    char buf[23]; // max size of messages is 23 (for REGIS)
+    while (1) {
+        recv(sock_fd, buf, 23, 0);
+
+        if (strncmp("NEWPL", buf, 5) == 0) {
+
+        } else if (strncmp("REGIS", buf, 5) == 0) {
+
+        } else if (strncmp("SIZE?", buf, 5) == 0) {
+
+        } else if (strncmp("LIST?", buf, 5) == 0) {
+            uint8_t game_id = buf[7];
+            fprintf(stderr, "received LIST? message from fd = %d for game_id = %d\n", sock_fd, game_id);
+            send_list_of_players(sock_fd, game_id);
+        } else if (strncmp("GAME?", buf, 5) == 0) {
+            fprintf(stderr, "received GAME? message from fd = %d\n", sock_fd);
+            send_list_of_games(sock_fd);
+        } else if (strncmp("START", buf, 5) == 0) {
+
+        }
+        return NULL;
+    }
 }
 
 
@@ -28,7 +50,7 @@ void send_list_of_games(int sock_fd) {
     // default value is 5, so that it reads as a "full" game even if the
     // game doesn't exist or has been started.
     int registered_players[256];
-    for (int i = 0; i<256; i++) {
+    for (int i = 0; i < 256; i++) {
         registered_players[i] = 5;
     }
 
@@ -58,9 +80,9 @@ void send_list_of_games(int sock_fd) {
             // - [ ] are not included in the message
             o_game_messages[free_message_index] = malloc(12); // 12 bytes in each message
             memmove(o_game_messages[free_message_index], "OGAME ", 6);
-            memmove(o_game_messages[free_message_index] + 6, (uint8_t * ) & i, 1);
+            memmove(o_game_messages[free_message_index] + 6, (uint8_t *) &i, 1);
             memmove(o_game_messages[free_message_index] + 7, " ", 1);
-            memmove(o_game_messages[free_message_index] + 8, (uint8_t *)&registered_players[i], 1);
+            memmove(o_game_messages[free_message_index] + 8, (uint8_t *) &registered_players[i], 1);
             memmove(o_game_messages[free_message_index] + 9, "***", 3);
 
             free_message_index += 1;
@@ -81,4 +103,45 @@ void send_list_of_games(int sock_fd) {
         send_all(sock_fd, o_game_messages[i], 12);
     }
 
+    fprintf(stderr, "sent GAME and OGAME messages to fd = %d\n", sock_fd);
+}
+
+void send_list_of_players(int sock_fd, int game_id) {
+
+    if (!games[game_id].is_created) { // game doesn't exist
+        send_all(sock_fd, "DUNNO***", 8);
+        fprintf(stderr, "sent DUNNO message to fd = %d\n", sock_fd);
+    } else { // game exists
+        // get number and ids of players
+        char player_ids[4][8];
+        int nb_players = 0;
+        pthread_mutex_lock(&mutex);
+        for (int i = 0; i < 4; i++) {
+            if (games[game_id].players[i].is_a_player) {
+                memmove(player_ids[i], games[game_id].players[i].id, 8);
+                nb_players += 1;
+            }
+        }
+        // unlock mutex
+        pthread_mutex_unlock(&mutex);
+
+        // make and send [LIST!...] message
+        char first_message[12];
+        memmove(first_message, "LIST! ", 7); // NOLINT(bugprone-not-null-terminated-result)
+        memmove(first_message + 6, (uint8_t *) &game_id, 1);
+        memmove(first_message + 7, " ", 2);
+        memmove(first_message + 8, (uint8_t *) &nb_players, 1);
+        memmove(first_message + 9, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
+        send_all(sock_fd, first_message, 12);
+
+        // make and send the [PLAYR...] message
+        for (int i = 0; i < 4; i++) {
+            if (player_ids[i] != NULL) {
+                char message[17];
+                sprintf(message, "PLAYR %s***", player_ids[i]);
+                send_all(sock_fd, message, 17);
+            }
+        }
+        fprintf(stderr, "sent LIST! and PLAYR messages to fd = %d\n", sock_fd);
+    }
 }
