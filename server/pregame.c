@@ -22,7 +22,9 @@ void *handle_client_first_connection(void *args_p) {
         } else if (strncmp("REGIS", buf, 5) == 0) {
 
         } else if (strncmp("SIZE?", buf, 5) == 0) {
-
+            uint8_t game_id = buf[7];
+            fprintf(stderr, "received SIZE? message from fd = %d for game_id = %d\n", sock_fd, game_id);
+            send_size_of_maze(sock_fd, game_id);
         } else if (strncmp("LIST?", buf, 5) == 0) {
             uint8_t game_id = buf[7];
             fprintf(stderr, "received LIST? message from fd = %d for game_id = %d\n", sock_fd, game_id);
@@ -127,9 +129,9 @@ void send_list_of_players(int sock_fd, int game_id) {
 
         // make and send [LIST!...] message
         char first_message[12];
-        memmove(first_message, "LIST! ", 7); // NOLINT(bugprone-not-null-terminated-result)
+        memmove(first_message, "LIST! ", 6); // NOLINT(bugprone-not-null-terminated-result)
         memmove(first_message + 6, (uint8_t *) &game_id, 1);
-        memmove(first_message + 7, " ", 2);
+        memmove(first_message + 7, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
         memmove(first_message + 8, (uint8_t *) &nb_players, 1);
         memmove(first_message + 9, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
         send_all(sock_fd, first_message, 12);
@@ -143,5 +145,38 @@ void send_list_of_players(int sock_fd, int game_id) {
             }
         }
         fprintf(stderr, "sent LIST! and PLAYR messages to fd = %d\n", sock_fd);
+    }
+}
+
+void send_size_of_maze(int sock_fd, uint8_t game_id) {
+    // the mutex is unlocked in each branch of the if
+    // to minimize locked time (not locked when sending the messages)
+    pthread_mutex_lock(&mutex);
+
+    if (!games[game_id].is_created) { // game doesn't exist
+        pthread_mutex_unlock(&mutex);
+        char message[] = "DUNNO***";
+        send_all(sock_fd, message, 8);
+        fprintf(stderr, "sent DUNNO message to fd = %d\n", sock_fd);
+    } else {
+        // we are not testing if the game has been started yet, or
+        // if it has too many players for the user to register
+        // => a player can see the size of the maze of any game
+        //    as long as it exists
+        uint16_t width = ntohs(games[game_id].maze->width);
+        uint16_t height = ntohs(games[game_id].maze->height);
+        pthread_mutex_unlock(&mutex);
+
+        char message[16];
+        memmove(message, "SIZE! ", 6); // NOLINT(bugprone-not-null-terminated-result)
+        memmove(message + 6, (uint8_t *) &game_id, 1);
+        memmove(message + 7, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
+        memmove(message + 8, &width, 2);
+        memmove(message + 10, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
+        memmove(message + 11, &height, 2);
+        memmove(message + 13, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
+
+        send_all(sock_fd, message, 16);
+        fprintf(stderr, "sent SIZE! message to fd = %d\n", sock_fd);
     }
 }
