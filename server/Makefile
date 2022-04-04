@@ -14,7 +14,7 @@ LIBINCLUDE = include
 CFLAGS += -I$(LIBINCLUDE)
 
 # list of the object files to compile
-OBJ_FILES = main.o socket_connections.o pregame.o
+OBJ_FILES = main.o socket_connections.o pregame.o test.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -29,4 +29,4 @@ server: $(OBJ_FILES)
 # to remove the compiled files
 .PHONY: clean
 clean:
-	rm server $(CASSINI_OBJFILES)
+	rm server $(OBJ_FILES)

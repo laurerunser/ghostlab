@@ -1,6 +1,7 @@
 #include "game_data.h"
 #include "socket_connections.h"
 #include "pregame.h"
+#include "test.h"
 
 #ifndef GHOSTLAB_MAIN_H
 #define GHOSTLAB_MAIN_H
