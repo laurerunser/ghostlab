@@ -1,12 +1,12 @@
 #include "test.h"
 extern game_data games[];
-extern maze_data maze[];
+extern maze_data mazes[];
 
 void init_test_1() {
     // no need for mutex because there are no concurrent threads yet
     for (int i = 0; i<256; i++) {
         games[i].is_created = false;
-        games[i].maze = &maze[0]; // only one maze to choose from
+        games[i].maze = &mazes[0]; // only one maze to choose from
         games[i].has_started = false;
         games[i].nb_players = 0;
         games[i].nb_ghosts_left = 4;

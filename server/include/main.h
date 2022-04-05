@@ -10,7 +10,7 @@
 game_data games[256];
 
 // array of all the available mazes
-maze_data maze[1];
+maze_data mazes[1];
 
 // mutex to protect the data
 pthread_mutex_t mutex;

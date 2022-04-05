@@ -10,7 +10,9 @@ typedef struct player_data {
     bool is_a_player; // true if this is a player, false if this is a placeholder
     bool sent_start; // true if the player sent the [START***] message
     int game_number; // number of the game the player is registered in; -1 if not registered
+    int player_number; // the place of this player in the player array (0, 1, 2, or 3)
 
+    struct sockaddr_in *address;
     int tcp_socket;
     int udp_socket;
 } player_data;

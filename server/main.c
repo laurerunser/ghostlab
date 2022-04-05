@@ -1,27 +1,12 @@
 #include "include/main.h"
 
-// gives default values to the games and players structures
+// gives default value is_created=false to the games
 void init_data_structures() {
     // no need for mutex because there are no concurrent threads yet
     for (int i = 0; i<256; i++) {
         games[i].is_created = false;
-        games[i].maze = &maze[0]; // only one maze to choose from
-        games[i].has_started = false;
-        games[i].nb_players = 0;
-        games[i].nb_ghosts_left = 4;
-
-        for (int j = 0; j < 4; j++) {
-            // init player placeholder values
-            games[i].players[j].is_a_player = false;
-            games[i].players[j].sent_start = false;
-            games[i].players[j].game_number = i;
-        }
     }
 }
-// TODO : this data init should for the most part be done
-// when creating the game
-// Only the part about setting the is_created to false should stay here
-
 
 int main(void) {
     // init the data

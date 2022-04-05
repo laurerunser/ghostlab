@@ -2,7 +2,12 @@
 
 // global variables defined in main.h
 extern game_data games[];
+extern maze_data mazes[];
 extern pthread_mutex_t mutex;
+
+// to remember which game the player is registered in
+// at beginning, game_number=-1 to signify this is a placeholder
+player_data this_player;
 
 void *handle_client_first_connection(void *args_p) {
     struct thread_arguments *args = (struct thread_arguments *) args_p;
@@ -12,31 +17,48 @@ void *handle_client_first_connection(void *args_p) {
     send_list_of_games(sock_fd);
     fprintf(stderr, "GAMES and OGAME message sent to fd = %d\n", sock_fd);
 
+    // at beginning of loop, this_player is a placeholder
+    // game_number = -1 to say the player is not registered in a game
+    this_player.game_number = -1;
+
     // wait for player's messages
-    char buf[23]; // max size of messages is 23 (for REGIS)
-    while (1) {
-        recv(sock_fd, buf, 23, 0);
+    char buf[24]; // max size of messages is 24 (for REGIS)
+    while (!game_has_started()) {
+        // receive message
+        recv(sock_fd, buf, 24, 0);
 
+        // handle message
+        // If the message doesn't follow the protocol, ignore it
         if (strncmp("NEWPL", buf, 5) == 0) {
-
+            fprintf(stderr, "received NEWPL message from fd = %d\n", sock_fd);
+            create_new_game(sock_fd, buf, args->client_address);
         } else if (strncmp("REGIS", buf, 5) == 0) {
+            uint8_t game_id = buf[21];
+            fprintf(stderr, "received REGIS message from fd = %d for game id = %d\n", sock_fd, game_id);
+            register_player(sock_fd, game_id, buf, args->client_address);
+        } else if (strncmp("UNREG", buf, 5) == 0) {
 
         } else if (strncmp("SIZE?", buf, 5) == 0) {
             uint8_t game_id = buf[7];
-            fprintf(stderr, "received SIZE? message from fd = %d for game_id = %d\n", sock_fd, game_id);
+            fprintf(stderr, "received SIZE? message from fd = %d "
+                            "for game_id = %d\n", sock_fd, game_id);
             send_size_of_maze(sock_fd, game_id);
         } else if (strncmp("LIST?", buf, 5) == 0) {
             uint8_t game_id = buf[7];
-            fprintf(stderr, "received LIST? message from fd = %d for game_id = %d\n", sock_fd, game_id);
+            fprintf(stderr, "received LIST? message from fd = %d "
+                            "for game_id = %d\n", sock_fd, game_id);
             send_list_of_players(sock_fd, game_id);
         } else if (strncmp("GAME?", buf, 5) == 0) {
             fprintf(stderr, "received GAME? message from fd = %d\n", sock_fd);
             send_list_of_games(sock_fd);
         } else if (strncmp("START", buf, 5) == 0) {
-
+            fprintf(stderr, "received START message from fd = %d\n", sock_fd);
+            bool stop = handle_start_message(sock_fd);
+            // player has sent START and cannot send messages anymore for pregame stuff
+            if (stop) return NULL;
         }
-        return NULL;
     }
+    return NULL;
 }
 
 
@@ -179,4 +201,193 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
         send_all(sock_fd, message, 16);
         fprintf(stderr, "sent SIZE! message to fd = %d\n", sock_fd);
     }
+}
+
+bool handle_start_message(int sock_fd) {
+    if (this_player.game_number == -1) { // if player is not registered, just ignore the START message
+        fprintf(stderr, "received START message from fd = %d "
+                        "but player is not registered into a game\n", sock_fd);
+        return false;
+    }
+
+    // update player status in the game
+    games[this_player.game_number].players[this_player.player_number].sent_start = true;
+
+    // player is registered and ready to go
+    fprintf(stderr, "Player fd = %d is ready to start\n", sock_fd);
+
+    // check if the game is ready to start
+    bool ready_to_start = true;
+    if (games[this_player.game_number].nb_players < 4) {
+        ready_to_start = false;
+    }
+    for (int i = 0; i < 4; i++) {
+        if (!games[this_player.game_number].players[i].sent_start) {
+            ready_to_start = false;
+        }
+    }
+
+    if (ready_to_start) {
+        // TODO : START GAME
+        fprintf(stderr, "Game %d is ready to start\n", this_player.game_number);
+    }
+
+    return true;
+}
+
+bool game_has_started() {
+    if (this_player.game_number == -1) {
+        return false;
+    } else {
+        return games[this_player.game_number].has_started;
+    }
+}
+
+void send_regok_message(int sock_fd, int game_id) {
+    char message[10];
+    memmove(message, "REGOK ", 6); // NOLINT(bugprone-not-null-terminated-result)
+    memmove(message + 6, (uint8_t *) &game_id, 1);
+    memmove(message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
+
+    send_all(sock_fd, message, 10);
+}
+
+void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address) {
+    // check if player is already registered
+    if (this_player.game_number != -1) {
+        char message[] = "REGNO***";
+        send_all(sock_fd, message, 8);
+        fprintf(stderr, "Player fd = %d tried to create a new game "
+                        "but they are already registered into game number %d\n",
+                sock_fd, this_player.game_number);
+    }
+
+    // need to lock the entire game array until the game is created so that no-one takes the spot
+    // that we want to put the new game in
+    pthread_mutex_lock(&mutex);
+
+    // check if there is an empty spot for a new game
+    int game_id = -1;
+    for (int i = 0; i < 256; i++) {
+        if (!games[i].is_created) {
+            game_id = i;
+            break;
+        }
+    }
+    if (game_id == -1) { // there is no space left to create a new game
+        char message[] = "REGNO***";
+        send_all(sock_fd, message, 8);
+        fprintf(stderr, "Player fd = %d tried to create a new game "
+                        "but there is not space left\n", sock_fd);
+    }
+
+    // everything is ok, creating the game
+    games[game_id].is_created = true;
+    games[game_id].has_started = false;
+
+    // copy of the maze
+    games[game_id].maze->height = mazes[0].height;
+    games[game_id].maze->width = mazes[0].width;
+    for (int i = 0; i < mazes[0].width; i++) {
+        for (int j = 0; j < mazes[0].height; j++) {
+            games[game_id].maze->maze[i][j] = mazes[0].maze[i][j];
+        }
+    }
+    games[game_id].nb_ghosts_left = 4;
+
+    // add players placeholders
+    for (int j = 0; j < 4; j++) {
+        // init player placeholder values
+        games[game_id].players[j].is_a_player = false;
+        games[game_id].players[j].sent_start = false;
+        games[game_id].players[j].game_number = game_id;
+        games[game_id].players[j].player_number = j;
+    }
+
+    // add the first player
+    games[game_id].nb_players = 1;
+
+    games[game_id].players[0].is_a_player = true;
+    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
+    games[game_id].players[0].tcp_socket = sock_fd;
+    games[game_id].players[0].address = client_address;
+
+    // get player's udp port
+    char udp_port[5];
+    memmove(udp_port, &buf[16], 4);
+    udp_port[4] = '\0';
+    games[game_id].players[0].udp_socket = atoi(udp_port);
+
+    pthread_mutex_unlock(&mutex);
+
+    // send the message
+    send_regok_message(sock_fd, game_id);
+    fprintf(stderr, "Player fd = %d has created the game id = %d\n", sock_fd, game_id);
+}
+
+void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address) {
+    // check if player is already registered in a game
+    if (this_player.game_number != -1) {
+        send_all(sock_fd, "REGNO***", 8);
+        fprintf(stderr, "Player fd = %d tried to register into game number %d "
+                        "but they are already registered into game number %d\n",
+                sock_fd, game_id, this_player.game_number);
+        return;
+    }
+
+    pthread_mutex_lock(&mutex);
+
+    // check if game exists
+    if (!games[game_id].is_created) {
+        send_all(sock_fd, "REGNO***", 8);
+        fprintf(stderr, "Player fd = %d tried to register into game number %d "
+                        "but game doesn't exist\n",
+                sock_fd, game_id);
+        return;
+    }
+
+    // check that game is not already started
+    if (games[game_id].has_started) {
+        send_all(sock_fd, "REGNO***", 8);
+        fprintf(stderr, "Player fd = %d tried to register into game number %d "
+                        "but game has already started\n",
+                sock_fd, game_id);
+        return;
+    }
+
+    // check if the game has a spot left
+    int spot_left = -1;
+    for (int i = 0; i<4; i++) {
+        if (!games[game_id].players[i].is_a_player) {
+            spot_left = i;
+            break;
+        }
+    }
+    if (spot_left == -1) {
+        send_all(sock_fd, "REGNO***", 8);
+        fprintf(stderr, "Player fd = %d tried to register into game number %d "
+                        "but there is no spot left\n",
+                sock_fd, game_id);
+        return;
+    }
+
+    // everything is OK, adding player to the game
+    // TODO : refactore adding a player into a function : duplicate code with create_new_game()
+    games[game_id].players[spot_left].is_a_player = true;
+    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
+    games[game_id].players[spot_left].tcp_socket = sock_fd;
+    games[game_id].players[0].address = client_address;
+
+    // get player's udp port
+    char udp_port[5];
+    memmove(udp_port, &buf[16], 4);
+    udp_port[4] = '\0';
+    games[game_id].players[spot_left].udp_socket = atoi(udp_port);
+
+    pthread_mutex_unlock(&mutex);
+
+    // send message
+    send_regok_message(sock_fd, game_id);
+    fprintf(stderr,"Player fd = %d is registered into game number %d\n",
+            sock_fd, game_id);
 }
