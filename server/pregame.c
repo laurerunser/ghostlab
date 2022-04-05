@@ -37,7 +37,8 @@ void *handle_client_first_connection(void *args_p) {
             fprintf(stderr, "received REGIS message from fd = %d for game id = %d\n", sock_fd, game_id);
             register_player(sock_fd, game_id, buf, args->client_address);
         } else if (strncmp("UNREG", buf, 5) == 0) {
-
+            fprintf(stderr, "received UNREG message from fd = %d\n", sock_fd);
+            unregister_player(sock_fd);
         } else if (strncmp("SIZE?", buf, 5) == 0) {
             uint8_t game_id = buf[7];
             fprintf(stderr, "received SIZE? message from fd = %d "
@@ -317,6 +318,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
     games[game_id].players[0].udp_socket = atoi(udp_port);
+    this_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);
 
@@ -383,6 +385,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
     games[game_id].players[spot_left].udp_socket = atoi(udp_port);
+    this_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);
 
@@ -390,4 +393,31 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     send_regok_message(sock_fd, game_id);
     fprintf(stderr,"Player fd = %d is registered into game number %d\n",
             sock_fd, game_id);
+}
+
+void unregister_player(int sock_fd) {
+    if (this_player.game_number == -1) { // player is not registered in a game
+        send_all(sock_fd, "DUNNO***", 8);
+        return;
+    }
+
+    // unregister user
+    pthread_mutex_lock(&mutex);
+    int game_id = this_player.game_number;
+    games[game_id].players[this_player.player_number].is_a_player = false;
+    pthread_mutex_unlock(&mutex);
+
+    // update this_player to a non-registered struct
+    player_data *unregis = malloc(sizeof(player_data));
+    unregis->game_number = -1;
+    this_player = *unregis;
+
+    // send message
+    char message[10];
+    memmove(message, "UNROK ", 6); // NOLINT(bugprone-not-null-terminated-result)
+    memmove(message + 6, (uint8_t *)&this_player.game_number, 1);
+    memmove(message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
+
+    send_all(sock_fd, message, 10);
+    fprintf(stderr, "Player fd = %d unregistered from games number %d", sock_fd, game_id);
 }

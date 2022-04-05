@@ -41,5 +41,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
 // Sends the [REGOK...] or [REGNO...] message
 void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address);
 
-
+// unregisters the player from the game
+// Sends [UNROK...] or [DUNNO...] messages
+void unregister_player(int sock_fd);
 #endif //GHOSTLAB_PREGAME_H
