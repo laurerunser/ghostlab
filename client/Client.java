@@ -2,18 +2,12 @@ package client;
 
 import java.io.*; 
 import java.net.*;
-/**
- * Client
- */
-public class Client {
-    public static void main(String[] args) {
-        Joueur j = new Joueur(args[0], args[1]); //Objet representant le joueur
-        //Connexion au serveur
-        Socket socket;
-        
-        DataInputStream userInput;
-        PrintStream theOutputStream;
 
+public class Client {
+
+    public static void main(String[] args) {
+
+        Socket socket;
         try {
             InetAddress serveur = InetAddress.getByName(args[0]);
             socket = new Socket(serveur, j.getPort());
