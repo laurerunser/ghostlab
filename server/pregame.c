@@ -8,6 +8,7 @@ extern pthread_mutex_t mutex;
 // to remember which game the player is registered in
 // at beginning, game_number=-1 to signify this is a placeholder
 player_data this_player;
+player_data placeholder_player;
 
 void *handle_client_first_connection(void *args_p) {
     struct thread_arguments *args = (struct thread_arguments *) args_p;
@@ -19,7 +20,8 @@ void *handle_client_first_connection(void *args_p) {
 
     // at beginning of loop, this_player is a placeholder
     // game_number = -1 to say the player is not registered in a game
-    this_player.game_number = -1;
+    placeholder_player.game_number = -1;
+    this_player = placeholder_player;
 
     // wait for player's messages
     char buf[24]; // max size of messages is 24 (for REGIS)
@@ -407,10 +409,8 @@ void unregister_player(int sock_fd) {
     games[game_id].players[this_player.player_number].is_a_player = false;
     pthread_mutex_unlock(&mutex);
 
-    // update this_player to a non-registered struct
-    player_data *unregis = malloc(sizeof(player_data));
-    unregis->game_number = -1;
-    this_player = *unregis;
+    // update this_player to the placeholder
+    this_player = placeholder_player;
 
     // send message
     char message[10];
