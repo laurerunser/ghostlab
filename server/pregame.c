@@ -10,6 +10,16 @@ extern pthread_mutex_t mutex;
 player_data this_player;
 player_data placeholder_player;
 
+bool isRecvRightLength(long received, long expected, char* context) {
+    if (received != expected) {
+        fprintf(stderr, "Reading message : %s, expected %d "
+                        "bytes, but received %d\n", context, expected, received);
+        return false;
+    } else {
+        return true;
+    }
+}
+
 void *handle_client_first_connection(void *args_p) {
     struct thread_arguments *args = (struct thread_arguments *) args_p;
     int sock_fd = args->sock_fd;
@@ -26,38 +36,73 @@ void *handle_client_first_connection(void *args_p) {
     // wait for player's messages
     char buf[24]; // max size of messages is 24 (for REGIS)
     while (!game_has_started()) {
-        // receive message
-        recv(sock_fd, buf, 24, 0);
+        // receive header of message
+        long res = recv(sock_fd, buf, 5, 0);
+        if (!isRecvRightLength(res, 5, "Header of a pregame message")) {
+            fprintf(stderr, "Ignoring incomplete message\n");
+            break;
+        }
 
         // handle message
         // If the message doesn't follow the protocol, ignore it
         if (strncmp("NEWPL", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 17, 0);
+            if (!isRecvRightLength(res, 17, "NEWPL")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             fprintf(stderr, "received NEWPL message from fd = %d\n", sock_fd);
             create_new_game(sock_fd, buf, args->client_address);
         } else if (strncmp("REGIS", buf, 5) == 0) {
+            res = recv(sock_fd,&buf[5], 19, 0);
+            if (!isRecvRightLength(res, 19, "REGIS")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             uint8_t game_id = buf[21];
             fprintf(stderr, "received REGIS message from fd = %d for game id = %d\n", sock_fd, game_id);
             register_player(sock_fd, game_id, buf, args->client_address);
         } else if (strncmp("UNREG", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 3, 0);
+            if (!isRecvRightLength(res, 3, "UNREG")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             fprintf(stderr, "received UNREG message from fd = %d\n", sock_fd);
             unregister_player(sock_fd);
         } else if (strncmp("SIZE?", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 5, 0);
+            if (!isRecvRightLength(res, 5, "SIZE?")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             uint8_t game_id = buf[7];
             fprintf(stderr, "received SIZE? message from fd = %d "
                             "for game_id = %d\n", sock_fd, game_id);
             send_size_of_maze(sock_fd, game_id);
         } else if (strncmp("LIST?", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 5, 0);
+            if (!isRecvRightLength(res, 5, "LIST?")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             uint8_t game_id = buf[7];
             fprintf(stderr, "received LIST? message from fd = %d "
                             "for game_id = %d\n", sock_fd, game_id);
             send_list_of_players(sock_fd, game_id);
         } else if (strncmp("GAME?", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 3, 0);
+            if (!isRecvRightLength(res, 3, "GAME?")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;            }
             fprintf(stderr, "received GAME? message from fd = %d\n", sock_fd);
             send_list_of_games(sock_fd);
         } else if (strncmp("START", buf, 5) == 0) {
+            res = recv(sock_fd, &buf[5], 3, 0);
+            if (!isRecvRightLength(res, 3, "START")) {
+                fprintf(stderr, "Ignoring incomplete message\n");
+                break;
+            }
             fprintf(stderr, "received START message from fd = %d\n", sock_fd);
             bool stop = handle_start_message(sock_fd);
             // player has sent START and cannot send messages anymore for pregame stuff
+            // this thread dies (returns NULL) and another one will be spun up
+            // by the function that starts game (one new thread for each player)
             if (stop) return NULL;
         }
     }
@@ -376,7 +421,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     }
 
     // everything is OK, adding player to the game
-    // TODO : refactore adding a player into a function : duplicate code with create_new_game()
+    // TODO : refactor adding a player into a function : duplicate code with create_new_game()
     games[game_id].players[spot_left].is_a_player = true;
     memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
     games[game_id].players[spot_left].tcp_socket = sock_fd;
