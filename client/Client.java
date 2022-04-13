@@ -24,7 +24,7 @@ public class Client {
     // otherwise, send a new exception (to be caught by the UI to display an error message)
     // + log that we tried to send but wasn't allowed
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, IncorrectMessageException {
         // get connected to the server
         try {
             InetAddress serveur = InetAddress.getByName(serverName);
@@ -39,6 +39,17 @@ public class Client {
             System.exit(1);
         }
         LOGGER.info("TCP connection established\n");
+
+        getAllGamesAndNbOfPlayers();
+        getMazeSizeForGame((short) 2);
+        getMazeSizeForGame((short) 100);
+        createGame("TESTtest");
+        registerToGame((short) 1, "TESTtest");
+        unregisterFromGame();
+        registerToGame((short) 1, "TESTtest");
+        getPlayersForGame((short) 3);
+        getPlayersForGame((short) 1);
+        getPlayersForGame((short) 100);
 
         // start UI
         // TODO

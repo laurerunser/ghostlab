@@ -10,8 +10,8 @@ void init_data_structures() {
 
 int main(void) {
     // init the data
-    init_data_structures();
-    //init_test_1();
+    //init_data_structures();
+    init_test_1();
 
     // init the mutex
     pthread_mutex_init(&mutex, NULL);
