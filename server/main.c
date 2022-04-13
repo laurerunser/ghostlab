@@ -29,7 +29,7 @@ int main(void) {
 
         // accept the connection
         int *new_fd = (int *)malloc(sizeof(int));
-        *new_fd = accept(sock_fd, (struct sockaddr *)&their_addr, &sin_size);
+        *new_fd = accept(sock_fd, (struct sockaddr *)their_addr, &sin_size);
         if (*new_fd == -1) {
             perror("accept");
             continue;

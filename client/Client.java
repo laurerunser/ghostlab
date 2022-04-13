@@ -17,7 +17,7 @@ public class Client {
     public static DataOutputStream tcp_socket_writer;
     public static Socket tcpSocket;
 
-    // TODO : make sure the loging level is such that the INFO logs will show during execution
+    // TODO add timeout : if server disconnects or takes too long to respond
 
     // TODO : add a `sent_start` boolean to be activate when sending the start message.
     // => then any time we try to send a message, check it is OK
@@ -40,16 +40,19 @@ public class Client {
         }
         LOGGER.info("TCP connection established\n");
 
+        readNbPlayersAnswer();
         getAllGamesAndNbOfPlayers();
         getMazeSizeForGame((short) 2);
         getMazeSizeForGame((short) 100);
         createGame("TESTtest");
+        registerToGame((short) 3, "TESTtest");
         registerToGame((short) 1, "TESTtest");
         unregisterFromGame();
-        registerToGame((short) 1, "TESTtest");
+        registerToGame((short) 2, "TESTtest");
         getPlayersForGame((short) 3);
         getPlayersForGame((short) 1);
         getPlayersForGame((short) 100);
+
 
         // start UI
         // TODO
@@ -99,7 +102,7 @@ public class Client {
         byte[] first_message = new byte[10];
         int res = tcp_socket_reader.read(first_message, 0, 10);
         if (res != 10) {
-            logIncorrectLengthMessage("[GAMES]", 10, res);
+            logIncorrectLengthMessage("GAMES", 10, res);
         }
         
         // check that the message starts with "GAMES "
@@ -109,27 +112,27 @@ public class Client {
         }
 
         // read the total number of available games
-        short nb_games = getShortFromByte(first_message[7]);
+        short nb_games = getShortFromByte(first_message[6]);
         LOGGER.info(String.format("Server says %d games are available\n", nb_games));
 
         // read the nb of players for each game
         for (int i = 0; i < nb_games; i++) {
             // read the message from the tcp reader and check it has the right length
-            byte[] message = new byte[13]; // to store the [OGAME] message
-            res = tcp_socket_reader.read(message, 0, 13);
-            if (res != 13) {
-                logIncorrectLengthMessage("[OGAME]", 13, res);
+            byte[] message = new byte[12]; // to store the [OGAME] message
+            res = tcp_socket_reader.read(message, 0, 12);
+            if (res != 12) {
+                logIncorrectLengthMessage("OGAME", 12, res);
             }
             
             // check that the header is correct
             String header = new String(message);
-            if (header.startsWith("OGAME ")) {
+            if (!header.startsWith("OGAME")) {
                 logIncorrectHeader("OGAME", header.substring(0, 5));
             }
             // read the id of the message from the byte array
-            short id = getShortFromByte(message[7]);
+            short id = getShortFromByte(message[6]);
             // read the number of players from the byte array
-            games[id] = getShortFromByte(message[9]);
+            games[id] = getShortFromByte(message[8]);
 
             LOGGER.info(String.format("Game id : %d has %d players\n", id, games[id]));
         }
@@ -217,7 +220,7 @@ public class Client {
         // copy stuff into the array
         byte[] message = new byte[25];
         System.arraycopy(start_of_message, 0, message, 0, start_of_message.length);
-        message[22] = getByteFromShort(gameId);
+        message[21] = getByteFromShort(gameId);
         System.arraycopy("***".getBytes(StandardCharsets.UTF_8), 0, message, 22, 3);
 
         // send the message
@@ -304,17 +307,22 @@ public class Client {
         // send the message
         tcp_socket_writer.write(message_to_send);
         tcp_socket_writer.flush();
+        LOGGER.info(String.format("Sent [LIST?] message for game = %d\n", gameId));
 
         // read the first [LIST!] or [DUNNO] message and check it has the right length
         LOGGER.info("Reading answer to [LIST?] request\n");
         byte[] byte_header = new byte[5];
         int res = tcp_socket_reader.read(byte_header, 0, 5);
         if (res != 5) {
-            logIncorrectLengthMessage("[DUNNO or LIST!]", 10, res);
+            logIncorrectLengthMessage("[DUNNO or LIST!]", 5, res);
         }
 
         String header = new String(byte_header);
         if (header.equals("DUNNO")) { // game doesn't exist
+            res = tcp_socket_reader.read(byte_header, 0, 3);
+            if (res != 3) {
+                logIncorrectLengthMessage("SIZE!", 3, res);
+            }
             LOGGER.info("Received [DUNNO] answer : this game doesn't exist\n");
             return null;
         } else if (!header.equals("LIST!")) { // wrong header
@@ -340,10 +348,10 @@ public class Client {
     public static String[] readPlayersIds() throws IOException, IncorrectMessageException {
         int res;
         // read the rest of the message
-        byte[] rest_of_message = new byte[6];
-        res = tcp_socket_reader.read(rest_of_message, 0, 6);
-        if (res != 6) {
-            logIncorrectLengthMessage("LIST!", 6, res);
+        byte[] rest_of_message = new byte[7];
+        res = tcp_socket_reader.read(rest_of_message, 0, 7);
+        if (res != 7) {
+            logIncorrectLengthMessage("LIST!", 7, res);
         }
 
         // read the total number of players (at position 3 bc we read the header in a different byte buffer)
@@ -363,7 +371,7 @@ public class Client {
 
             // check that the header is correct
             String header2 = new String(message);
-            if (header2.startsWith("PLAYR")) {
+            if (!header2.startsWith("PLAYR")) {
                 logIncorrectHeader("PLAYR", header2.substring(0, 5));
             }
 
@@ -400,15 +408,19 @@ public class Client {
         byte[] byte_header = new byte[5];
         int res = tcp_socket_reader.read(byte_header, 0, 5);
         if (res != 5) {
-            logIncorrectLengthMessage("[DUNNO or SIZE!!]", 10, res);
+            logIncorrectLengthMessage("[DUNNO or SIZE!!]", 5, res);
         }
 
         String header = new String(byte_header);
         if (header.equals("DUNNO")) { // game doesn't exist
+            res = tcp_socket_reader.read(byte_header, 0, 3); // read the rest of the message
+            if (res != 3) {
+                logIncorrectLengthMessage("SIZE!", 3, res);
+            }
             LOGGER.info("Received [DUNNO] answer : this game doesn't exist\n");
             return new int[]{-1, -1};
         } else if (!header.equals("SIZE!")) { // wrong header
-            logIncorrectHeader("DUNNO or SIZE!", header);
+            logIncorrectHeader("[DUNNO] or [SIZE!]", header);
         }
 
         // if we get to here, then the header was [SIZE!] and we can read the answer
@@ -426,10 +438,11 @@ public class Client {
 
         int[] size = new int[2];
         // get the height
-        size[0] = b.getShort(9);
+        size[0] = b.getShort(3);
 
         // get the width
-        size[1] = b.getShort(12);
+        // get the width
+        size[1] = b.getShort(6);
 
         LOGGER.info(String.format("Size of maze is h=%d, w=%d\n", size[0], size[1]));
         return size;
@@ -475,7 +488,7 @@ public class Client {
      * @throws IncorrectMessageException because the message doesn't follow protocol
      */
     public static void logIncorrectHeader(String expected, String received) throws IncorrectMessageException {
-        LOGGER.warning(String.format("ERROR : Expected message %s from " +
+        LOGGER.warning(String.format("ERROR : Expected message [%s] from " +
                 "server, but received message starting with [%s]\n", expected, received));
         throw new IncorrectMessageException(String.format("Wrong header receiving %s message.", expected));
     }

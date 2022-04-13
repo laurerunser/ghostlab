@@ -7,7 +7,7 @@
 # Don't touch anything else, the variables are here to do the work for you
 
 CC ?= gcc
-CLFAGS ?= -Wall -pthread
+CLFAGS ?= -Wall
 
 # tell the linker where to find the .h files
 LIBINCLUDE = include
@@ -24,7 +24,7 @@ all: server
 
 # the server
 server: $(OBJ_FILES)
-	$(CC) $(CFLAGS) -o server $(OBJ_FILES)
+	$(CC) $(CFLAGS) -o server $(OBJ_FILES) -lpthread
 
 # to remove the compiled files
 .PHONY: clean

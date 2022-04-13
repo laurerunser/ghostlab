@@ -1,5 +1,6 @@
 #include "game_data.h"
 #include <string.h>
+#include <stdlib.h>
 
 #ifndef GHOSTLAB_TEST_H
 #define GHOSTLAB_TEST_H

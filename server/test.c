@@ -4,6 +4,20 @@ extern maze_data mazes[];
 
 void init_test_1() {
     // no need for mutex because there are no concurrent threads yet
+
+    // init the maze
+    // => there MUST be at least one game defined at the beginning
+    mazes[0].width = 30;
+    mazes[0].height = 34;
+    mazes[0].maze = malloc(mazes[0].width * sizeof(int *));
+    for(int i = 0; i<mazes[0].width; i++) {
+        mazes[0].maze[i] = malloc(mazes[0].height * sizeof(int));
+        for (int j = 0; j<mazes[0].height; j++) {
+            mazes[0].maze[i][j] = 0;
+        }
+    }
+
+    // init some of the games
     for (int i = 0; i<256; i++) {
         games[i].is_created = false;
         games[i].maze = &mazes[0]; // only one maze to choose from

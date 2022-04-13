@@ -23,7 +23,7 @@ typedef struct maze_data {
     int height;
     int nb_ghosts;
 
-    int *maze[]; // the contents of the maze
+    int **maze; // the contents of the maze
     // 0 for empty,
     // 1 for wall,
     // 2 for ghost,
