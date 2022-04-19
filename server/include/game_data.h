@@ -28,6 +28,10 @@ typedef struct maze_data {
     // 1 for wall,
     // 2 for ghost,
     // 3 for player
+
+    // the starting x and y positions for the players
+    int x_start[4];
+    int y_start[4];
 } maze_data;
 
 // All the data about a game

@@ -6,6 +6,7 @@ void init_data_structures() {
     for (int i = 0; i<256; i++) {
         games[i].is_created = false;
     }
+    // TODO : init the maze !! Otherwise game crashes
 }
 
 int main(void) {

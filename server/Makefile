@@ -14,7 +14,7 @@ LIBINCLUDE = include
 CFLAGS += -I$(LIBINCLUDE)
 
 # list of the object files to compile
-OBJ_FILES = main.o socket_connections.o pregame.o test.o
+OBJ_FILES = main.o socket_connections.o pregame.o test.o game.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

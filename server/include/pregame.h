@@ -7,6 +7,8 @@
 
 #include "game_data.h"
 #include "socket_connections.h"
+#include "game.h"
+
 
 #ifndef GHOSTLAB_PREGAME_H
 #define GHOSTLAB_PREGAME_H

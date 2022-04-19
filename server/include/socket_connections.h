@@ -34,4 +34,14 @@ void send_all(int, char*, int);
  */
 int create_TCP_socket(void);
 
+/*
+ * Returns the int as a char[3]; with leading zeroes if needed
+ * Don't forget to FREE the pointer after !
+ */
+char* int_to_3_bytes(int);
+
+/*
+ * Same with, but returns a char[6] with the "***" after the number
+ */
+char* int_to_3_bytes_with_stars(int);
 #endif //GHOSTLAB_SOCKET_CONNECTIONS_H

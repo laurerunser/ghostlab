@@ -101,3 +101,15 @@ int create_TCP_socket(void) {
     fprintf(stderr, "server TCP socket ready to listen to connections...\n");
     return sockfd;
 }
+
+char *int_to_3_bytes(int x) {
+    char *res = malloc(3);
+    sprintf(res, "%03d", x);
+    return res;
+}
+
+char *int_to_3_bytes_with_stars(int x) {
+    char *res = malloc(6);
+    sprintf(res, "%03d***", x);
+    return res;
+}
