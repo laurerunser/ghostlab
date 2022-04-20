@@ -45,6 +45,7 @@ char* int_to_3_bytes(int);
  * Same with, but returns a char[6] with the "***" after the number
  */
 char* int_to_3_bytes_with_stars(int);
+char *int_to_4_bytes_with_stars(int);
 
 /*
  * Returns true if received=expected, false otherwise.

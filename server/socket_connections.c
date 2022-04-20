@@ -114,6 +114,12 @@ char *int_to_3_bytes_with_stars(int x) {
     return res;
 }
 
+char *int_to_4_bytes_with_stars(int x) {
+    char *res = malloc(7);
+    sprintf(res, "%04d***", x);
+    return res;
+}
+
 
 bool isRecvRightLength(long received, long expected, char* context) {
     if (received != expected) {
