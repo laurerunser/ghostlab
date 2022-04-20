@@ -21,6 +21,7 @@
 
 #define TCP_PORT "3490" // the port users will be connecting to
 #define BACKLOG 0 // how many pending connections queue will hold; 0 for system default
+#define MULTICAST_ADDR "224.0.0.3"
 
 /* Sends a TCP message. Makes sure all the message is sent through,
  * even if the message is very big.
@@ -40,7 +41,7 @@ int create_TCP_socket(void);
  * Don't forget to FREE the pointer after !
  */
 char* int_to_3_bytes(int);
-
+char* int_to_4_bytes(int);
 /*
  * Same with, but returns a char[6] with the "***" after the number
  */
@@ -53,5 +54,11 @@ char *int_to_4_bytes_with_stars(int);
  * where [context] is the header of the message that was being read.
  */
 bool isRecvRightLength(long received, long expected, char* context);
+
+/*
+ * creates a multicast socket with the address MULTICAST_ADDR
+ * and the port 4444+game_id
+ */
+int create_multicast_socket(int game_id);
 
 #endif //GHOSTLAB_SOCKET_CONNECTIONS_H

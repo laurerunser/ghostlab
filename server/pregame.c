@@ -350,6 +350,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     games[game_id].is_created = true;
     games[game_id].has_started = false;
     games[game_id].nb_ghosts_left = 4;
+    games[game_id].multicast_socket = create_multicast_socket(game_id);
 
     // copy of the maze
     int **maze_blocks = malloc(mazes[0].width * sizeof(int *));
@@ -383,7 +384,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
-    games[game_id].players[0].udp_socket = atoi(udp_port);
+    games[game_id].players[0].udp_port = atoi(udp_port);
     current_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);
@@ -450,7 +451,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
-    games[game_id].players[spot_left].udp_socket = atoi(udp_port);
+    games[game_id].players[spot_left].udp_port = atoi(udp_port);
     current_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);

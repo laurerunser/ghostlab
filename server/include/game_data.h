@@ -18,7 +18,7 @@ typedef struct player_data {
 
     struct sockaddr_in *address;
     int tcp_socket;
-    int udp_socket;
+    int udp_port;
 } player_data;
 
 // All the data about a maze
@@ -47,8 +47,10 @@ typedef struct game_data {
     int nb_players;  // how many players are currently registered / playing the game (if player quits -> nb-1)
     bool has_started;
     int nb_ghosts_left;         // the number of ghosts left in the game
-} game_data;
 
+    // port for the multicast is 4444 + id of the game in the games array
+    int multicast_socket;
+} game_data;
 
 // the arguments that the main function from main.c
 // gives to the threads from pregame.c

@@ -37,7 +37,7 @@ void *start_game(void *player) {
 
     // close the sockets (both TCP and UDP)
     close(sock_fd_tcp);
-    close(this_player->udp_socket);
+    close(this_player->udp_port);
 
     return NULL;
 }
@@ -174,7 +174,7 @@ void move_vertical(int steps, char *context, int direction) {
             // increase score
             this_player->score += 10;
             fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
-            // TODO send UDP multicast saying ghost has been caught
+            send_score_multicast();
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
@@ -214,7 +214,7 @@ void move_horizontal(int steps, char *context, int direction) {
             // increase score
             this_player->score += 10;
             fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
-            // TODO send UDP multicast saying ghost has been caught
+            send_score_multicast();
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
@@ -236,6 +236,9 @@ void move_horizontal(int steps, char *context, int direction) {
 
 
 void send_MOVEF() {
+    // the SCORE multicast message is sent during the `move` function
+    // because we need the exact coordinates at which the ghost was captured
+
     // make MOVEF message
     char mess[22];
     char *x = int_to_3_bytes(this_player->x);
@@ -255,8 +258,6 @@ void send_MOVEF() {
     // send MOVEF message
     send_all(sock_fd_tcp, mess, 21);
     fprintf(stderr, "Send MOVEF message to player fd=%d\n", sock_fd_tcp);
-
-    // TODO send SCORE message in UDP multicast
 }
 
 void send_MOVE() {
@@ -357,4 +358,21 @@ void send_list_of_players_for_game() {
         }
     }
     fprintf(stderr, "sent GLIS! and GPLYR messages to fd = %d\n", sock_fd_tcp);
+}
+
+void send_score_multicast() {
+    char mess[30];
+    char *score = int_to_4_bytes(this_player->score);
+    char *x = int_to_3_bytes(this_player->x);
+    char *y = int_to_3_bytes(this_player->y);
+
+    sprintf(mess, "SCORE %s %s %s %s+++", this_player->id, score, x, y);
+    free(score);
+    free(x);
+    free(y);
+
+    struct sockaddr *their_addr;
+    sendto(game->multicast_socket, mess, strlen(mess), 0,
+           their_addr, (socklen_t)sizeof(struct sockaddr_in));
+    fprintf(stderr, "Sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
 }

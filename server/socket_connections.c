@@ -114,6 +114,12 @@ char *int_to_3_bytes_with_stars(int x) {
     return res;
 }
 
+char *int_to_4_bytes(int x) {
+    char *res = malloc(4);
+    sprintf(res, "%04d", x);
+    return res;
+}
+
 char *int_to_4_bytes_with_stars(int x) {
     char *res = malloc(7);
     sprintf(res, "%04d***", x);
@@ -129,4 +135,41 @@ bool isRecvRightLength(long received, long expected, char* context) {
     } else {
         return true;
     }
+}
+
+int create_multicast_socket(int game_id) {
+    int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    char *port;
+    sprintf(port, "%d", 4444 + game_id);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // use my IP
+
+    if ((rv = getaddrinfo(MULTICAST_ADDR, port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all the results
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                             p->ai_protocol)) == -1) {
+            perror("socket");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "failed to create multicast socket for game %d\n", game_id);
+        return 2;
+    }
+
+    freeaddrinfo(servinfo);
+    return sockfd;
 }
