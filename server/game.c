@@ -30,6 +30,15 @@ void *start_game(void *player) {
     send_initial_position();
 
     handle_game_requests();
+
+    // send [GOBYE] message to signal game has ended
+    send_all(sock_fd_tcp, "GOBYE***", 8);
+
+    // close the sockets (both TCP and UDP)
+    close(sock_fd_tcp);
+    close(this_player->udp_socket);
+
+    return NULL;
 }
 
 void send_welcome_message() {
