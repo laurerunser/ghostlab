@@ -14,6 +14,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #ifndef GHOSTLAB_SOCKET_CONNECTIONS_H
 #define GHOSTLAB_SOCKET_CONNECTIONS_H
@@ -44,4 +45,12 @@ char* int_to_3_bytes(int);
  * Same with, but returns a char[6] with the "***" after the number
  */
 char* int_to_3_bytes_with_stars(int);
+
+/*
+ * Returns true if received=expected, false otherwise.
+ * If false, also prints an error message to stderr,
+ * where [context] is the header of the message that was being read.
+ */
+void isRecvRightLength(long received, long expected, char* context);
+
 #endif //GHOSTLAB_SOCKET_CONNECTIONS_H
