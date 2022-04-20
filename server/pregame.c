@@ -174,6 +174,7 @@ void send_list_of_games(int sock_fd) {
     send_all(sock_fd, first_message, 10);
     for (int i = 0; i < free_message_index; i++) {
         send_all(sock_fd, o_game_messages[i], 12);
+        free(o_game_messages[i]);
     }
 
     fprintf(stderr, "sent OGAME messages to fd = %d\n", sock_fd);

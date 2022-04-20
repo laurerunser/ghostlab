@@ -40,3 +40,5 @@ void send_MOVEF();
 void send_MOVE();
 
 void player_quits();
+
+void send_list_of_players_for_game();

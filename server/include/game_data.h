@@ -13,6 +13,8 @@ typedef struct player_data {
     int player_number; // the place of this player in the player array (0, 1, 2, or 3)
 
     int score;
+    int x;
+    int y;
 
     struct sockaddr_in *address;
     int tcp_socket;

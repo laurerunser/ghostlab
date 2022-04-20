@@ -11,8 +11,6 @@ extern player_data placeholder_player;
 // the player this thread talks to + their socket
 player_data *this_player;
 int sock_fd_tcp;
-int x_player;
-int y_player;
 
 // the game we are using
 // !! Both the game and the maze MUST be protected by the
@@ -74,6 +72,7 @@ void handle_game_requests() {
         } else if (strncmp("IQUIT", buf, 5) == 0) {
             player_quits();
         } else if (strncmp("GLIS?", buf, 5) == 0) {
+            send_list_of_players_for_game();
         } else if (strncmp("MALL?", buf, 5) == 0) {
         } else if (strncmp("SEND?", buf, 5) == 0) {
         }
@@ -118,12 +117,12 @@ void send_initial_position() {
 
     // get initial position for this player
     // no need to protect with mutex, this information doesn't change
-    x_player = maze->x_start[this_player->player_number];
-    y_player = maze->y_start[this_player->player_number];
+    this_player->x = maze->x_start[this_player->player_number];
+    this_player->y = maze->y_start[this_player->player_number];
 
     // add position to message
-    char *x_str = int_to_3_bytes(x_player);
-    char *y_str = int_to_3_bytes_with_stars(y_player);
+    char *x_str = int_to_3_bytes(this_player->x);
+    char *y_str = int_to_3_bytes_with_stars(this_player->y);
     memmove(message + 15, x_str, 3);
     memmove(message + 18, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
     memmove(message + 19, y_str, 6);
@@ -133,7 +132,7 @@ void send_initial_position() {
     // send message
     send_all(sock_fd_tcp, message, 25);
     fprintf(stderr, "Sent position message to player id = %s, sockfd = %d\n"
-            "Position is x=%d y=%d\n", this_player->id, sock_fd_tcp, x_player, y_player);
+                    "Position is x=%d y=%d\n", this_player->id, sock_fd_tcp, this_player->x, this_player->y);
 }
 
 int receive_move_message(char *context, char *buf) {
@@ -143,9 +142,9 @@ int receive_move_message(char *context, char *buf) {
     }
     fprintf(stderr, "received %s message from fd = %d\n", context, sock_fd_tcp);
     char *ptr;
-    int d = (int)strtol(&buf[6], &ptr, 10);
+    int d = (int) strtol(&buf[6], &ptr, 10);
     if (ptr == NULL) {
-        fprintf(stderr,"Conversion error reading the nb of steps in [%s], string was %s\n",
+        fprintf(stderr, "Conversion error reading the nb of steps in [%s], string was %s\n",
                 context, &buf[6]);
         return -1;
     }
@@ -155,36 +154,37 @@ int receive_move_message(char *context, char *buf) {
 
 // TODO refactor into one method
 // or at least refactor the bits that are the same
-void move_vertical(int steps, char* context, int direction) {
+void move_vertical(int steps, char *context, int direction) {
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
     for (int i = 0; i < steps; i++) {
-        if (direction == 1 && y_player + 1 >= maze->height) {
+        if (direction == 1 && this_player->y + 1 >= maze->height) {
             break; // can't go up
-        } if (direction == -1 && y_player - 1 < 0) {
+        }
+        if (direction == -1 && this_player->y - 1 < 0) {
             break; // can't go down
-        } else if (maze->maze[x_player][y_player + 1*direction] == 0) { // free space
-            y_player += 1; // move
-        } else if (maze->maze[x_player][y_player + 1*direction] == 2) { // ghost
-            y_player += 1; // move
+        } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 0) { // free space
+            this_player->y += 1; // move
+        } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 2) { // ghost
+            this_player->y += 1; // move
             // remove the ghost
             captured_a_ghost = true;
-            maze->maze[x_player][y_player] = 0;
+            maze->maze[this_player->x][this_player->y] = 0;
             maze->nb_ghosts -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, x_player, y_player);
+            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             // TODO send UDP multicast saying ghost has been caught
         } else { // wall or another player : blocked
-            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, x_player, y_player);
+            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
         }
     }
 
     // put the player in their new place in the maze
-    maze->maze[x_player][y_player] = 3;
+    maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, x_player, y_player);
+    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -194,36 +194,37 @@ void move_vertical(int steps, char* context, int direction) {
     }
 }
 
-void move_horizontal(int steps, char* context, int direction) {
+void move_horizontal(int steps, char *context, int direction) {
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
     for (int i = 0; i < steps; i++) {
-        if (direction == 1 && x_player + 1 >= maze->width) {
+        if (direction == 1 && this_player->x + 1 >= maze->width) {
             break; // can't go up
-        } if (direction == -1 && x_player - 1 < 0) {
+        }
+        if (direction == -1 && this_player->x - 1 < 0) {
             break; // can't go down
-        } else if (maze->maze[x_player + 1*direction][y_player] == 0) { // free space
-            x_player += 1; // move
-        } else if (maze->maze[x_player + 1*direction][y_player] == 2) { // ghost
-            x_player += 1; // move
+        } else if (maze->maze[this_player->x + 1 * direction][this_player->y] == 0) { // free space
+            this_player->x += 1; // move
+        } else if (maze->maze[this_player->x + 1 * direction][this_player->y] == 2) { // ghost
+            this_player->x += 1; // move
             // remove the ghost
             captured_a_ghost = true;
-            maze->maze[x_player][y_player] = 0;
+            maze->maze[this_player->x][this_player->y] = 0;
             maze->nb_ghosts -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, x_player, y_player);
+            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             // TODO send UDP multicast saying ghost has been caught
         } else { // wall or another player : blocked
-            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, x_player, y_player);
+            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
         }
     }
 
     // put the player in their new place in the maze
-    maze->maze[x_player][y_player] = 3;
+    maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, x_player, y_player);
+    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -237,8 +238,8 @@ void move_horizontal(int steps, char* context, int direction) {
 void send_MOVEF() {
     // make MOVEF message
     char mess[22];
-    char *x = int_to_3_bytes(x_player);
-    char *y = int_to_3_bytes(y_player);
+    char *x = int_to_3_bytes(this_player->x);
+    char *y = int_to_3_bytes(this_player->y);
     char *score_with_stars = int_to_4_bytes_with_stars(this_player->score);
     memmove(mess, "MOVEF ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(mess + 6, x, 3);
@@ -260,8 +261,8 @@ void send_MOVEF() {
 
 void send_MOVE() {
     char mess[17];
-    char *x = int_to_3_bytes(x_player);
-    char *y_with_stars = int_to_3_bytes_with_stars(y_player);
+    char *x = int_to_3_bytes(this_player->x);
+    char *y_with_stars = int_to_3_bytes_with_stars(this_player->y);
     memmove(mess, "MOVE! ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(mess + 6, x, 3);
     memmove(mess + 9, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
@@ -277,7 +278,7 @@ void send_MOVE() {
 bool game_has_ended() {
     pthread_mutex_lock(&mutex);
     bool res = game->nb_ghosts_left == 0
-            || game->nb_players == 0;
+               || game->nb_players == 0;
     pthread_mutex_unlock(&mutex);
     return res;
 }
@@ -302,4 +303,57 @@ void player_quits() {
     // no need to send the GOBYE message, it is sent
     // automatically at the end of the main function.
     // The sockets are also closed there.
+}
+
+void send_list_of_players_for_game() {
+    char player_ids[4][8];
+    bool is_a_player[4];
+    int nb_players = game->nb_players;
+
+    // get the info with a mutex first,
+    // then make the messages and send without the mutex
+    // to spend the less time possible inside the mutex
+    pthread_mutex_lock(&mutex);
+    for (int i = 0; i < 4; i++) {
+        if (games[this_player->game_number].players[i].is_a_player) {
+            memmove(player_ids[i], games[this_player->game_number].players[i].id, 8);
+            is_a_player[i] = true;
+            nb_players += 1;
+        } else {
+            is_a_player[i] = false;
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+
+    // make and send [GLIS!...] message
+    char first_message[10];
+    memmove(first_message, "GLIS! ", 6); // NOLINT(bugprone-not-null-terminated-result)
+    memmove(first_message + 6, (uint8_t *) &nb_players, 1);
+    memmove(first_message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
+    send_all(sock_fd_tcp, first_message, 10);
+
+    // make and send the [GPLYR...] messages
+    for (int i = 0; i < 4; i++) {
+        if (is_a_player[i]) {
+            char message[31];
+            char *x = int_to_3_bytes(game->players[i].x);
+            char *y = int_to_3_bytes(game->players[i].y);
+            char *score_with_stars = int_to_4_bytes_with_stars(game->players[i].score);
+            memmove(message, "GPLYR ", 6); // NOLINT(bugprone-not-null-terminated-result)
+            memmove(message + 6, player_ids[i], 8);
+            memmove(message + 14, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
+            memmove(message + 15, x, 3);
+            memmove(message + 18, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
+            memmove(message + 19, y, 3);
+            memmove(message + 22, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
+            memmove(message + 23, score_with_stars, 8);
+
+            free(x);
+            free(y);
+            free(score_with_stars);
+
+            send_all(sock_fd_tcp, message, 31);
+        }
+    }
+    fprintf(stderr, "sent GLIS! and GPLYR messages to fd = %d\n", sock_fd_tcp);
 }
