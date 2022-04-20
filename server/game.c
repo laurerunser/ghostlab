@@ -5,6 +5,9 @@ extern game_data games[];
 extern maze_data mazes[];
 extern pthread_mutex_t mutex;
 
+// placeholder defined in pregame.c
+extern player_data placeholder_player;
+
 // the player this thread talks to + their socket
 player_data *this_player;
 int sock_fd_tcp;
@@ -39,6 +42,42 @@ void *start_game(void *player) {
     close(this_player->udp_socket);
 
     return NULL;
+}
+
+void handle_game_requests() {
+    char buf[14]; // size of the [SEND?] message without the message part
+    // we will use another buffer to get the 'mess' part of the [SEND?] and [MALL?] messages
+
+    // stop reading messages if the game has ended
+    // or if the player quit (this_player will be replaced with a placeholder)
+    while (!game_has_ended() && this_player->is_a_player) {
+        // receive header of message
+        long res = recv(sock_fd_tcp, buf, 5, 0);
+        if (!isRecvRightLength(res, 5, "Header of a game message")) {
+            break;
+        }
+
+        // handle the message depending on the header
+        if (strncmp("UPMOV", buf, 5) == 0) {
+            int steps = receive_move_message("UPMOV", buf);
+            move_vertical(steps, "UP", 1);
+        } else if (strncmp("DOMOV", buf, 5) == 0) {
+            int steps = receive_move_message("DOMOV", buf);
+            move_vertical(steps, "DOWN", -1);
+        } else if (strncmp("LEMOV", buf, 5) == 0) {
+            int steps = receive_move_message("LEMOV", buf);
+            move_horizontal(steps, "LEFT", -1);
+        } else if (strncmp("RIMOV", buf, 5) == 0) {
+            int steps = receive_move_message("RIMOV", buf);
+            move_horizontal(steps, "RIGHT", 1);
+
+        } else if (strncmp("IQUIT", buf, 5) == 0) {
+            player_quits();
+        } else if (strncmp("GLIS?", buf, 5) == 0) {
+        } else if (strncmp("MALL?", buf, 5) == 0) {
+        } else if (strncmp("SEND?", buf, 5) == 0) {
+        }
+    }
 }
 
 void send_welcome_message() {
@@ -97,37 +136,6 @@ void send_initial_position() {
             "Position is x=%d y=%d\n", this_player->id, sock_fd_tcp, x_player, y_player);
 }
 
-void handle_game_requests() {
-    char buf[14]; // size of the [SEND?] message without the message part
-    // we will use another buffer to get the 'mess' part of the [SEND?] and [MALL?] messages
-    while (!game_has_ended()) {
-        // receive header of message
-        long res = recv(sock_fd_tcp, buf, 5, 0);
-        if (!isRecvRightLength(res, 5, "Header of a game message")) {
-            break;
-        }
-
-        // handle the message depending on the header
-        if (strncmp("UPMOV", buf, 5) == 0) {
-            int steps = receive_move_message("UPMOV", buf);
-            move_vertical(steps, "UP", 1);
-        } else if (strncmp("DOMOV", buf, 5) == 0) {
-            int steps = receive_move_message("DOMOV", buf);
-            move_vertical(steps, "DOWN", -1);
-        } else if (strncmp("LEMOV", buf, 5) == 0) {
-            int steps = receive_move_message("LEMOV", buf);
-            move_horizontal(steps, "LEFT", -1);
-        } else if (strncmp("RIMOV", buf, 5) == 0) {
-            int steps = receive_move_message("RIMOV", buf);
-            move_horizontal(steps, "RIGHT", 1);
-        } else if (strncmp("IQUIT", buf, 5) == 0) {
-        } else if (strncmp("GLIS?", buf, 5) == 0) {
-        } else if (strncmp("MALL?", buf, 5) == 0) {
-        } else if (strncmp("SEND?", buf, 5) == 0) {
-        }
-    }
-}
-
 int receive_move_message(char *context, char *buf) {
     long res = recv(sock_fd_tcp, &buf[5], 7, 0);
     if (!isRecvRightLength(res, 7, context)) {
@@ -166,6 +174,7 @@ void move_vertical(int steps, char* context, int direction) {
             // increase score
             this_player->score += 10;
             fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, x_player, y_player);
+            // TODO send UDP multicast saying ghost has been caught
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, x_player, y_player);
             break;
@@ -204,6 +213,7 @@ void move_horizontal(int steps, char* context, int direction) {
             // increase score
             this_player->score += 10;
             fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, x_player, y_player);
+            // TODO send UDP multicast saying ghost has been caught
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, x_player, y_player);
             break;
@@ -266,7 +276,30 @@ void send_MOVE() {
 
 bool game_has_ended() {
     pthread_mutex_lock(&mutex);
-    bool res = game->nb_ghosts_left == 0 || game->nb_players == 0;
+    bool res = game->nb_ghosts_left == 0
+            || game->nb_players == 0;
     pthread_mutex_unlock(&mutex);
     return res;
+}
+
+void player_quits() {
+    // read the *** at the end of the message
+    char buf[3];
+    int res = recv(sock_fd_tcp, buf, 3, 0);
+    if (!isRecvRightLength(res, 3, "IQUIT")) {
+        return; // ignore incomplete message
+    }
+
+    // remove the player from the game
+    pthread_mutex_lock(&mutex);
+    game->players[this_player->player_number] = placeholder_player;
+    pthread_mutex_unlock(&mutex);
+
+    // make this_player a placeholder so that the main function
+    // will know to exit and kill this thread
+    this_player->is_a_player = false;
+
+    // no need to send the GOBYE message, it is sent
+    // automatically at the end of the main function.
+    // The sockets are also closed there.
 }

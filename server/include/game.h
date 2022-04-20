@@ -38,3 +38,5 @@ void move_horizontal(int steps, char* context, int direction);
 
 void send_MOVEF();
 void send_MOVE();
+
+void player_quits();
