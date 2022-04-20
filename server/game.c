@@ -71,13 +71,26 @@ void handle_game_requests() {
 
         } else if (strncmp("IQUIT", buf, 5) == 0) {
             player_quits();
+            // read end of message
+            res = recv(sock_fd_tcp, buf, 3, 0);
+            if (!isRecvRightLength(res, 3, "IQUIT")) {
+                break; // ignore incomplete message
+            }
         } else if (strncmp("GLIS?", buf, 5) == 0) {
             send_list_of_players_for_game();
+            // read end of message
+            res = recv(sock_fd_tcp, buf, 3, 0);
+            if (!isRecvRightLength(res, 3, "IQUIT")) {
+                break; // ignore incomplete message
+            }
         } else if (strncmp("MALL?", buf, 5) == 0) {
+            send_message_to_all();
         } else if (strncmp("SEND?", buf, 5) == 0) {
         }
     }
 }
+
+
 
 void send_welcome_message() {
     char welcome_msg[39];
@@ -173,7 +186,8 @@ void move_vertical(int steps, char *context, int direction) {
             maze->nb_ghosts -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+                    this_player->y);
             send_score_multicast();
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
@@ -213,7 +227,8 @@ void move_horizontal(int steps, char *context, int direction) {
             game->nb_ghosts_left -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+                    this_player->y);
             send_score_multicast();
 
             // if this was the last ghost, this is the end of the game
@@ -293,13 +308,6 @@ bool game_has_ended() {
 }
 
 void player_quits() {
-    // read the *** at the end of the message
-    char buf[3];
-    long res = recv(sock_fd_tcp, buf, 3, 0);
-    if (!isRecvRightLength(res, 3, "IQUIT")) {
-        return; // ignore incomplete message
-    }
-
     // remove the player from the game
     pthread_mutex_lock(&mutex);
     game->players[this_player->player_number] = placeholder_player;
@@ -381,16 +389,17 @@ void send_score_multicast() {
 
     struct sockaddr *their_addr;
     sendto(game->multicast_socket, mess, strlen(mess), 0,
-           their_addr, (socklen_t)sizeof(struct sockaddr_in));
+           their_addr, (socklen_t) sizeof(struct sockaddr_in));
     fprintf(stderr, "Sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
 }
 
 void send_endgame_multicast() {
     char mess[22];
 
+    // find the player with the highest score
     player_data best_player;
     int score_int = 0;
-    for (int i = 0; i<4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (game->players[i].is_a_player && score_int < game->players[i].score) {
             score_int = game->players[i].score;
             best_player = game->players[i];
@@ -401,8 +410,66 @@ void send_endgame_multicast() {
     // there is no ghost left so there is no way to change the scores
     char *score = int_to_4_bytes(best_player.score);
     sprintf(mess, "ENDGA %s %s+++", best_player.id, score);
-
-    fprintf(stderr, "Sent ENDGA message : player fd=%d won with score %s\n", best_player.tcp_socket, score);
     free(score);
 
+    struct sockaddr_in their_addr;
+    sendto(game->multicast_socket, mess, 22, 0, (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
+    fprintf(stderr, "Sent ENDGA message : player fd=%d won with score %d\n", best_player.tcp_socket, best_player.score);
+}
+
+void send_message_to_all() {
+    // read the message and send the multicast
+    long length_of_message = read_and_send_message("MALL?", "MESSA", "MALL!"); // the length of the message with the stars
+
+    // recv the complete MALL? message
+    // length is 6 (header) + the length of the message + 3 (the stars)
+    char buf[length_of_message];
+    long length_to_recv = 6 + length_of_message;
+    long res = recv(sock_fd_tcp, buf, length_to_recv, 0);
+    isRecvRightLength(res, length_to_recv, "MALL?");
+
+}
+
+long read_and_send_message(char *context, char *header_to_send, char *ack_to_send) {
+    // read 204 bytes = max size of the message + 1 (space after header) + 3 (the stars)
+    // with option MSG_PEEK == don't remove data from the stream
+    // => at the end we do a recv of the exact size of the message
+    //    so that only the right amount of bytes are taken from the buffer
+    //    and there are no additional "cached" request
+    char buf[205];
+    recv(sock_fd_tcp, buf, 204, MSG_PEEK);
+    buf[204] = '\0'; // to treat it as a string
+
+    // find where the message ends
+    char *start_of_stars = strstr(buf, "***");
+    if (start_of_stars == NULL) { // didn't find a "***" in the string
+        fprintf(stderr, "Reading a [%s] message, can't find *** at the end for player fd = %d\n"
+                        "Ignoring the message\n", context, sock_fd_tcp);
+        return -1;
+    }
+    // the length of the message to send is the difference between the beginning and the end pointers
+    long lenght_of_message = start_of_stars - buf;
+
+    // copy only the relevant portion (== the message to send)
+    char *message;
+    memmove(message, buf, lenght_of_message);
+
+    // make MESSA message
+    // length of message + 6 (header+space) + 8 (id) + 1 (space between id and message) + 3 stars
+    long length_to_send = lenght_of_message + 6 + 8 + 1 + 3;
+    char complete_message[length_to_send];
+    sprintf(complete_message, "%s %s %s+++", header_to_send, this_player->id, message);
+
+    // send multicast message;
+    struct sockaddr_in their_addr;
+    sendto(game->multicast_socket, complete_message, length_to_send, 0, (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
+    fprintf(stderr, "Sent %s message from player fd = %d\n", header_to_send, sock_fd_tcp);
+
+    // send acknowledgement to initial sender
+    char *ack;
+    sprintf(ack, "%s***", ack_to_send);
+    send_all(sock_fd_tcp, ack, 8);
+    fprintf(stderr, "Sent %s acknowledgement to player fd=%d\n", ack_to_send, sock_fd_tcp);
+
+    return lenght_of_message;
 }

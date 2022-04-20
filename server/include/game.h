@@ -35,6 +35,7 @@ int receive_move_message(char *context, char *buf);
 void move_vertical(int steps, char* context, int direction);
 void move_horizontal(int steps, char* context, int direction);
 
+void compare_header(char *);
 
 void send_MOVEF();
 void send_MOVE();
@@ -45,3 +46,12 @@ void send_list_of_players_for_game();
 
 void send_score_multicast();
 void send_endgame_multicast();
+void send_message_to_all();
+
+/*
+ * Returns the length of the message that was read (with the *** at the end)
+ * context : "MALL?" or "SEND?" -> for error messages
+ * header_to_send : "MESSA" or "MESSP" -> multicast header
+ * ack : "MALL!" or "SEND!" -> TCP acknowledgement header
+ */
+long read_and_send_message(char *context, char *header_to_send, char *ack_to_send);
