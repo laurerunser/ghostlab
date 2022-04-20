@@ -44,3 +44,4 @@ void player_quits();
 void send_list_of_players_for_game();
 
 void send_score_multicast();
+void send_endgame_multicast();

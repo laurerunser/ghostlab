@@ -184,7 +184,7 @@ void move_vertical(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, this_player->x, this_player->y);
+    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -210,11 +210,19 @@ void move_horizontal(int steps, char *context, int direction) {
             // remove the ghost
             captured_a_ghost = true;
             maze->maze[this_player->x][this_player->y] = 0;
-            maze->nb_ghosts -= 1;
+            game->nb_ghosts_left -= 1;
             // increase score
             this_player->score += 10;
             fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             send_score_multicast();
+
+            // if this was the last ghost, this is the end of the game
+            // this MUST be here (== at the capture of the ghost) and
+            // not in the has_game_ended method because otherwise several
+            // threads could send the message at the same time
+            if (game->nb_ghosts_left == 0) {
+                send_endgame_multicast();
+            }
         } else { // wall or another player : blocked
             fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
@@ -224,7 +232,7 @@ void move_horizontal(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", context, sock_fd_tcp, this_player->x, this_player->y);
+    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -287,7 +295,7 @@ bool game_has_ended() {
 void player_quits() {
     // read the *** at the end of the message
     char buf[3];
-    int res = recv(sock_fd_tcp, buf, 3, 0);
+    long res = recv(sock_fd_tcp, buf, 3, 0);
     if (!isRecvRightLength(res, 3, "IQUIT")) {
         return; // ignore incomplete message
     }
@@ -375,4 +383,26 @@ void send_score_multicast() {
     sendto(game->multicast_socket, mess, strlen(mess), 0,
            their_addr, (socklen_t)sizeof(struct sockaddr_in));
     fprintf(stderr, "Sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
+}
+
+void send_endgame_multicast() {
+    char mess[22];
+
+    player_data best_player;
+    int score_int = 0;
+    for (int i = 0; i<4; i++) {
+        if (game->players[i].is_a_player && score_int < game->players[i].score) {
+            score_int = game->players[i].score;
+            best_player = game->players[i];
+        }
+    }
+
+    // no need to protect with mutex : this is the end of the game,
+    // there is no ghost left so there is no way to change the scores
+    char *score = int_to_4_bytes(best_player.score);
+    sprintf(mess, "ENDGA %s %s+++", best_player.id, score);
+
+    fprintf(stderr, "Sent ENDGA message : player fd=%d won with score %s\n", best_player.tcp_socket, score);
+    free(score);
+
 }
