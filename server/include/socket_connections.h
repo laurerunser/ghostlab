@@ -51,6 +51,6 @@ char* int_to_3_bytes_with_stars(int);
  * If false, also prints an error message to stderr,
  * where [context] is the header of the message that was being read.
  */
-void isRecvRightLength(long received, long expected, char* context);
+bool isRecvRightLength(long received, long expected, char* context);
 
 #endif //GHOSTLAB_SOCKET_CONNECTIONS_H

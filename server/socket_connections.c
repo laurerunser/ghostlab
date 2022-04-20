@@ -115,9 +115,12 @@ char *int_to_3_bytes_with_stars(int x) {
 }
 
 
-void isRecvRightLength(long received, long expected, char* context) {
+bool isRecvRightLength(long received, long expected, char* context) {
     if (received != expected) {
         fprintf(stderr, "Reading message : %s, expected %lu "
                         "bytes, but received %lu\nIgnoring incomplete message\n", context, expected, received);
+        return false;
+    } else {
+        return true;
     }
 }
