@@ -294,6 +294,7 @@ void player_quits() {
     // remove the player from the game
     pthread_mutex_lock(&mutex);
     game->players[this_player->player_number] = placeholder_player;
+    game->nb_players -= 1;
     pthread_mutex_unlock(&mutex);
 
     // make this_player a placeholder so that the main function
