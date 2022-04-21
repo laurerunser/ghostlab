@@ -388,6 +388,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
     games[game_id].players[0].udp_socket = create_UDP_socket(*client_address, udp_port);
+    games[game_id].players[0].address = client_address;
     current_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);
@@ -454,6 +455,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
     games[game_id].players[spot_left].udp_socket = create_UDP_socket(*client_address, udp_port);
+    games[game_id].players[spot_left].address = client_address;
     current_player = games[game_id].players[0];
 
     pthread_mutex_unlock(&mutex);
