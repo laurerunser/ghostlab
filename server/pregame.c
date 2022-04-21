@@ -377,20 +377,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     }
 
     // add the first player
-    games[game_id].nb_players = 1;
-
-    games[game_id].players[0].is_a_player = true;
-    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
-    games[game_id].players[0].tcp_socket = sock_fd;
-
-    // make the udp socket
-    char udp_port[5];
-    memmove(udp_port, &buf[16], 4);
-    udp_port[4] = '\0';
-    games[game_id].players[0].udp_socket = create_UDP_socket(*client_address, udp_port);
-    games[game_id].players[0].address = client_address;
-    current_player = games[game_id].players[0];
-
+    add_player_to_game(game_id, 0, buf, sock_fd, client_address);
     pthread_mutex_unlock(&mutex);
 
     // send the message
@@ -445,18 +432,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     }
 
     // everything is OK, adding player to the game
-    // TODO : refactor adding a player into a function : duplicate code with create_new_game()
-    games[game_id].players[spot_left].is_a_player = true;
-    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
-    games[game_id].players[spot_left].tcp_socket = sock_fd;
-
-    // get player's udp port
-    char udp_port[5];
-    memmove(udp_port, &buf[16], 4);
-    udp_port[4] = '\0';
-    games[game_id].players[spot_left].udp_socket = create_UDP_socket(*client_address, udp_port);
-    games[game_id].players[spot_left].address = client_address;
-    current_player = games[game_id].players[0];
+    add_player_to_game(game_id, spot_left, buf, sock_fd, client_address);
 
     pthread_mutex_unlock(&mutex);
 
@@ -464,6 +440,29 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     send_regok_message(sock_fd, game_id);
     fprintf(stderr,"Player fd = %d is registered into game number %d\n",
             sock_fd, game_id);
+}
+
+void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address) {
+    // this method MUST be used inside of a mutex !!
+
+    games[game_id].players[player_index].is_a_player = true;
+    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
+    games[game_id].players[player_index].tcp_socket = sock_fd;
+
+    // get player's udp port
+    char udp_port[5];
+    memmove(udp_port, &buf[16], 4);
+    udp_port[4] = '\0';
+
+    // make the UDP socket
+    games[game_id].players[player_index].udp_socket = create_UDP_socket(*client_address, udp_port);
+    games[game_id].players[player_index].address = client_address;
+
+    // update current_player
+    current_player = games[game_id].players[0];
+
+    // update nb of players in the game
+    games[game_id].nb_players += 1;
 }
 
 void unregister_player(int sock_fd) {

@@ -43,6 +43,17 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
 // Sends the [REGOK...] or [REGNO...] message
 void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address);
 
+/*
+ * Adds a player to a game.
+ * The method MUST be used INSIDE A MUTEX
+ * - game_id : the id of the game
+ * - player_index : the index where to put the player in the game->players[] array
+ * - buf : the buffer from which to read the udp port
+ * - sock_fd : the tcp socket of the player
+ * - client_address : the address of the player
+ */
+void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address);
+
 // unregisters the player from the game
 // Sends [UNROK...] or [DUNNO...] messages
 void unregister_player(int sock_fd);
