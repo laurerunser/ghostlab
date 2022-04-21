@@ -137,19 +137,20 @@ bool isRecvRightLength(long received, long expected, char* context) {
     }
 }
 
-int create_multicast_socket(int game_id) {
+
+int create_UDP_socket(struct sockaddr_in addr, char *port) {
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     int rv;
-    char *port;
-    sprintf(port, "%d", 4444 + game_id);
+    char *ip;
+    sprintf(ip, "%x", addr.sin_addr.s_addr);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    if ((rv = getaddrinfo(MULTICAST_ADDR, port, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(ip, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -166,7 +167,7 @@ int create_multicast_socket(int game_id) {
     }
 
     if (p == NULL) {
-        fprintf(stderr, "failed to create multicast socket for game %d\n", game_id);
+        fprintf(stderr, "failed to create multicast socket\n");
         return 2;
     }
 

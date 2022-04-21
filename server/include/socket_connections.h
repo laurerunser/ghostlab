@@ -35,6 +35,7 @@ void send_all(int, char*, int);
  * Creates a TCP socket and returns the file descriptor
  */
 int create_TCP_socket(void);
+int create_UDP_socket(struct sockaddr_in addr, char *port);
 
 /*
  * Returns the int as a char[3]; with leading zeroes if needed
@@ -54,11 +55,5 @@ char *int_to_4_bytes_with_stars(int);
  * where [context] is the header of the message that was being read.
  */
 bool isRecvRightLength(long received, long expected, char* context);
-
-/*
- * creates a multicast socket with the address MULTICAST_ADDR
- * and the port 4444+game_id
- */
-int create_multicast_socket(int game_id);
 
 #endif //GHOSTLAB_SOCKET_CONNECTIONS_H
