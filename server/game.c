@@ -36,9 +36,13 @@ void *start_game(void *player) {
     send_all(sock_fd_tcp, "GOBYE***", 8);
 
     // close the sockets (both TCP and UDP)
-    close(sock_fd_tcp);
-    close(this_player->udp_port);
+    close(this_player->tcp_socket);
+    close(this_player->udp_socket);
 
+    // if this was the last player, also close the multicast socket
+    if (game->nb_players == 0) {
+        close(game->multicast_socket);
+    }
     return NULL;
 }
 
@@ -86,6 +90,7 @@ void handle_game_requests() {
         } else if (strncmp("MALL?", buf, 5) == 0) {
             send_message_to_all();
         } else if (strncmp("SEND?", buf, 5) == 0) {
+            send_personal_message();
         }
     }
 }
@@ -419,18 +424,55 @@ void send_endgame_multicast() {
 
 void send_message_to_all() {
     // read the message and send the multicast
-    long length_of_message = read_and_send_message("MALL?", "MESSA", "MALL!"); // the length of the message with the stars
+    struct sockaddr_in addr;
+    inet_pton(AF_INET, MULTICAST_ADDR, &addr.sin_addr);
+    long length_of_message = read_and_send_message(game->multicast_socket, addr,
+                                                   "MALL?", "MESSA", "MALL!");
 
     // recv the complete MALL? message
-    // length is 6 (header) + the length of the message + 3 (the stars)
     char buf[length_of_message];
-    long length_to_recv = 6 + length_of_message;
+    long length_to_recv = length_of_message; // stars included in the length
     long res = recv(sock_fd_tcp, buf, length_to_recv, 0);
     isRecvRightLength(res, length_to_recv, "MALL?");
-
 }
 
-long read_and_send_message(char *context, char *header_to_send, char *ack_to_send) {
+void send_personal_message() {
+    // read the recipient id (with the space before but not the space after)
+    char id[10];
+    long res = recv(sock_fd_tcp, id, 9, 0);
+    if (!isRecvRightLength(res, 9, "SEND?")) {
+        return;
+    }
+
+    // check that the player is in that game
+    player_data *recipient = NULL;
+    for (int i = 0; i<4; i++) {
+        if (game->players[i].is_a_player
+            && strncmp(&id[1], game->players[i].id, 8) == 0) {
+            recipient = &game->players[i];
+            break;
+        }
+    }
+    // if player isn't in the game
+    if (recipient == NULL) {
+        send_all(sock_fd_tcp, "NSEND***", 8);
+        fprintf(stderr, "Sent NSEND to player fd=%d : recipient id = %s is not in the game\n",
+                sock_fd_tcp, &id[1]);
+        return;
+    }
+
+    // read the message and send the multicast
+    long length_of_message = read_and_send_message(recipient->udp_socket, *recipient->address,
+                                                   "SEND?", "MESSP", "SEND!");
+
+    // recv the complete SEND? message
+    char buf[length_of_message]; // stars included in the length
+    long length_to_recv = length_of_message;
+    res = recv(sock_fd_tcp, buf, length_to_recv, 0);
+    isRecvRightLength(res, length_to_recv, "SEND?");
+}
+
+long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send, char *ack_to_send) {
     // read 204 bytes = max size of the message + 1 (space after header) + 3 (the stars)
     // with option MSG_PEEK == don't remove data from the stream
     // => at the end we do a recv of the exact size of the message
@@ -461,8 +503,8 @@ long read_and_send_message(char *context, char *header_to_send, char *ack_to_sen
     sprintf(complete_message, "%s %s %s+++", header_to_send, this_player->id, message);
 
     // send multicast message;
-    struct sockaddr_in their_addr;
-    sendto(game->multicast_socket, complete_message, length_to_send, 0, (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
+    sendto(socketfd, complete_message, length_to_send, 0,
+           (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
     fprintf(stderr, "Sent %s message from player fd = %d\n", header_to_send, sock_fd_tcp);
 
     // send acknowledgement to initial sender

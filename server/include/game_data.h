@@ -18,7 +18,7 @@ typedef struct player_data {
 
     struct sockaddr_in *address;
     int tcp_socket;
-    int udp_port;
+    int udp_socket;
 } player_data;
 
 // All the data about a maze

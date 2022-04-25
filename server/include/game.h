@@ -47,6 +47,7 @@ void send_list_of_players_for_game();
 void send_score_multicast();
 void send_endgame_multicast();
 void send_message_to_all();
+void send_personal_message();
 
 /*
  * Returns the length of the message that was read (with the *** at the end)
@@ -54,4 +55,4 @@ void send_message_to_all();
  * header_to_send : "MESSA" or "MESSP" -> multicast header
  * ack : "MALL!" or "SEND!" -> TCP acknowledgement header
  */
-long read_and_send_message(char *context, char *header_to_send, char *ack_to_send);
+long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send, char *ack_to_send);
