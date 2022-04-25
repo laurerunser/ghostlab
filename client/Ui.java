@@ -7,16 +7,6 @@ public class Ui extends JFrame {
     JPanel principal = new JPanel();
     JPanel menu = new Menu();
 
-    public static void main(String[] args){
-        javax.swing.SwingUtilities.invokeLater(
-            () -> {
-                Ui v = new Ui();
-                    v.setVisible(true);
-            }
-        );
-    
-    }
-
     public class Menu extends JPanel {
         
 

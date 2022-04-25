@@ -55,7 +55,12 @@ public class Client {
 
 
         // start UI
-        // TODO
+        javax.swing.SwingUtilities.invokeLater(
+            () -> {
+                Ui v = new Ui();
+                    v.setVisible(true);
+            }
+        );
     }
 
     /**
