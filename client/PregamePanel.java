@@ -7,8 +7,9 @@ public class PregamePanel extends JPanel {
     JPanel listOfGames = new JPanel();
 
     JButton startButton = new JButton("START");
-    JButton unregisterButton = new JButton("UNREG");
-    JButton refreshButton = new JButton("REFRESH");
+    JButton unregisterButton = new JButton("UNREGISTER");
+    JButton refreshButton = new JButton("REFRESH THE GAMES");
+    JButton createGameButton = new JButton("CREATE A GAME");
 
     boolean isGameSelected = false; // true if a game has been selected
 
@@ -20,6 +21,8 @@ public class PregamePanel extends JPanel {
         this.add(unregisterButton);
         refreshButton.addActionListener(e -> refreshListOfGames());
         this.add(refreshButton);
+        createGameButton.addActionListener(e -> createGame());
+        this.add(createGameButton);
 
         // read the first message sent by the server
         // and store the number of players for each available game
@@ -74,35 +77,45 @@ public class PregamePanel extends JPanel {
         // try/catch block to handle the error
 
         assert playersID != null; // because the function inside the try/catch can return null
-                                  // program should terminate if it is, but better safe than sorry
+        // program should terminate if it is, but better safe than sorry
 
         // create the panel to hold the list of players
-        JPanel playersIDPannel = new JPanel();
-        for (int j = 0; j < playersID.length; j++) {
-            JLabel joueur = new JLabel(j + " :" + playersID[j]);
-            playersIDPannel.add(joueur);
-        }
-        // add how many spots are left
-        int spotsLeft = 4 - playersID.length;
-        JLabel spotsLeftLabel = new JLabel("There are " + spotsLeft + " left !");
-        playersIDPannel.add(spotsLeftLabel);
+        JPanel playersIDPannel = createListOfPlayers(playersID);
 
         // make the popup
         JDialog popup = new JDialog();
         popup.setTitle("Game " + gameId + " details");
         popup.add(playersIDPannel);
+        popup.add(getMazeSize(gameId)); // add the size of the maze
 
         // add register button
         JButton registerButton = new JButton("Choose this game !");
         JTextField pseudoField = new JTextField(8);
         pseudoField.setBorder(new TitledBorder("Your name : "));
-        registerButton.addActionListener(e -> selectGame(gameId, pseudoField.getText()));
+        registerButton.addActionListener(e -> {
+            selectGame(gameId, pseudoField.getText());
+            popup.setVisible(false);
+        });
         popup.add(registerButton);
 
         // make the popup visible
         popup.setVisible(true);
 
         // there is an automatic "close" button to hide the dialog
+    }
+
+    public JPanel createListOfPlayers(String[] playersID) {
+        JPanel playersIDPanel = new JPanel();
+        for (int j = 0; j < playersID.length; j++) {
+            JLabel joueur = new JLabel(j + " :" + playersID[j]);
+            playersIDPanel.add(joueur);
+        }
+        // add how many spots are left
+        int spotsLeft = 4 - playersID.length;
+        JLabel spotsLeftLabel = new JLabel("There are " + spotsLeft + " left !");
+        playersIDPanel.add(spotsLeftLabel);
+
+        return playersIDPanel;
     }
 
     public void selectGame(int gameId, String playerId) {
@@ -145,13 +158,14 @@ public class PregamePanel extends JPanel {
         }
     }
 
-
     public void unregisterGame() {
         if (isGameSelected) {
             boolean res = false;
             try {
                 res = Client.unregisterFromGame();
-            } catch (Exception e) { e.printStackTrace();}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             if (res) {
                 JOptionPane.showMessageDialog(this, "You have been unregistered !");
             } else {
@@ -160,6 +174,45 @@ public class PregamePanel extends JPanel {
         } else {
             JOptionPane.showMessageDialog(this, "You aren't registered into a game yet !");
         }
+    }
+
+    public void createGame() {
+        // make the popup
+        JDialog popup = new JDialog();
+        popup.setTitle("Create a game");
+
+        // add register button
+        JButton registerButton = new JButton("Let's go !");
+        JTextField pseudoField = new JTextField(8);
+        pseudoField.setBorder(new TitledBorder("Your name : "));
+        registerButton.addActionListener(e -> {
+            int res = Client.createGame(pseudoField.getText());
+            if (res == -1) { // failure
+                JOptionPane.showMessageDialog(this, "Sorry, can't create the game. Try again later !");
+            } else { // success
+                JOptionPane.showMessageDialog(this, "You created game number "
+                        + res + ". Click on START to play !");
+            }
+            popup.setVisible(false);
+        });
+        popup.add(registerButton);
+
+        // make the popup visible
+        popup.setVisible(true);
+    }
+
+    public JLabel getMazeSize(int gameID) {
+        // get the size
+        int[] size = null;
+        try {
+            size = Client.getMazeSizeForGame((short) gameID);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // make the label
+        return new JLabel("Maze size : " + size[0] + " * " + size[1]);
     }
 
 }

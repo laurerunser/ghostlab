@@ -42,16 +42,16 @@ public class Client {
 
         // start UI
         javax.swing.SwingUtilities.invokeLater(
-            () -> {
-                Ui v = null;
-                try {
-                    v = new Ui();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.exit(0);
+                () -> {
+                    Ui v = null;
+                    try {
+                        v = new Ui();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        System.exit(0);
+                    }
+                    v.setVisible(true);
                 }
-                v.setVisible(true);
-            }
         );
     }
 
@@ -61,7 +61,7 @@ public class Client {
      * @return an array filled with the number of players for each available game
      * value will be -1 if the server doesn't mention the game
      * (e.g. bc it doesn't exist or bc it has already been created)
-     * @throws IOException if there is a problem with the socket
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server's messages don't follow protocol
      */
     public static int[] getAllGamesAndNbOfPlayers() throws IOException, IncorrectMessageException {
@@ -79,15 +79,16 @@ public class Client {
 
     /**
      * Reads the [GAME...] and [OGAME...] messages from the server
+     *
      * @return an array filled with the number of players for each available game
      * *          value will be -1 if the server doesn't mention the game
      * *          (e.g. bc it doesn't exist or bc it has already been created)
-     * @throws IOException if there is a problem with the socket
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server messages don't follow protocol.
-     *  We are testing :
-     *  -> if the [GAMES] or [OGAME] headers are at the beginning of the message
-     *  -> if the length of the message is correct
-     *  Other problems with the message are not taken into account
+     *                                   We are testing :
+     *                                   -> if the [GAMES] or [OGAME] headers are at the beginning of the message
+     *                                   -> if the length of the message is correct
+     *                                   Other problems with the message are not taken into account
      */
     public static int[] readNbPlayersAnswer() throws IOException, IncorrectMessageException {
         LOGGER.info("Reading the server's answer to [GAMES?] request\n");
@@ -101,10 +102,10 @@ public class Client {
         if (res != 10) {
             logIncorrectLengthMessage("GAMES", 10, res);
         }
-        
+
         // check that the message starts with "GAMES "
         String msgHeader = new String(first_message, 0, 5);
-        if (! msgHeader.equals("GAMES")) {
+        if (!msgHeader.equals("GAMES")) {
             logIncorrectHeader("GAMES", msgHeader);
         }
 
@@ -120,7 +121,7 @@ public class Client {
             if (res != 12) {
                 logIncorrectLengthMessage("OGAME", 12, res);
             }
-            
+
             // check that the header is correct
             String header = new String(message);
             if (!header.startsWith("OGAME")) {
@@ -142,32 +143,43 @@ public class Client {
      * Asks the server to create a new game
      *
      * @param id the pseudo of the user. Exactly 8 chars
-     * @return the number of the game create, or -1 if the server says error
-     * @throws IOException if there is a problem with the socket
-     * @throws IncorrectMessageException if the server's messages don't follow protocol
+     * @return the number of the game created, or -1 if the server says error
      */
-    public static int createGame(String id) throws IOException, IncorrectMessageException {
+    public static int createGame(String id) {
         // make the message
         String m = "NEWPL " + id + " " + String.format("%04d", playerUDPPort) + "***";
         byte[] message = m.getBytes(StandardCharsets.UTF_8);
 
         // send the message
-        tcp_socket_writer.write(message);
-        tcp_socket_writer.flush();
+        try {
+            tcp_socket_writer.write(message);
+            tcp_socket_writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         LOGGER.info(String.format("Sent [NEWPL] message with id = %s and port = %d\n", id, playerUDPPort));
 
         // receive the server's answer and return result
-        return receiveREGOKorREGNO();
+        int res = 0;
+        try {
+            res = receiveREGOKorREGNO();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return res;
     }
 
     /**
      * Receives a [REGOK] or [REGNO] answer from the server
-     * @return  the id of the game the user registered to if REGOK , or -1 if REGNO
-     * @throws IOException  if there is a problem with the socket
+     *
+     * @return the id of the game the user registered to if REGOK , or -1 if REGNO
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server's message don't follow protocol
-     *  we are testing :
-     *  -> the beginning of the message is [REGNO] or [REGOK] and has the right length
-     *  -> and for REGOK, if the rest of the message has the right length
+     *                                   we are testing :
+     *                                   -> the beginning of the message is [REGNO] or [REGOK] and has the right length
+     *                                   -> and for REGOK, if the rest of the message has the right length
      */
     public static int receiveREGOKorREGNO() throws IOException, IncorrectMessageException {
         byte[] byte_header = new byte[5];
@@ -189,7 +201,7 @@ public class Client {
             }
         } else if (header.equals("REGOK")) {
             // read the rest of the message and extract game number
-            res = tcp_socket_reader.read(byte_header, 0, 5); 
+            res = tcp_socket_reader.read(byte_header, 0, 5);
             if (res != 5) {
                 logIncorrectLengthMessage("REGNO or REGOK", 5, res);
             }
@@ -232,11 +244,12 @@ public class Client {
 
     /**
      * Asks the server to unregister the player from a game
+     *
      * @return true if successful, false otherwise
-     * @throws IOException if there is a problem with the socket
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server's messages don't follow protocol
-     *  -> we are only testing that the message starts with [UNROK] or [DUNNO]
-     *  Other message format errors are not taken into account.
+     *                                   -> we are only testing that the message starts with [UNROK] or [DUNNO]
+     *                                   Other message format errors are not taken into account.
      */
     public static boolean unregisterFromGame() throws IOException, IncorrectMessageException {
         // send message
@@ -288,9 +301,10 @@ public class Client {
 
     /**
      * Asks the server for the list of players for a game
-     * @param gameId    the id of the game
-     * @return  a list of the players' ids
-     * @throws IOException  if there is a problem with the socket
+     *
+     * @param gameId the id of the game
+     * @return a list of the players' ids
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server's messages don't follow protocol
      */
     public static String[] getPlayersForGame(short gameId) throws IOException, IncorrectMessageException {
@@ -333,14 +347,15 @@ public class Client {
     /**
      * Reads the rest of the [LIST!] message (after the header == from position 5 on)
      * and all the [PLAYR] messages that follow
-     * @return  the list of IDs for the players in the game
-     * @throws IOException if there is a problem with the socket
+     *
+     * @return the list of IDs for the players in the game
+     * @throws IOException               if there is a problem with the socket
      * @throws IncorrectMessageException if the server's messages don't follow protocol
-     *  we are testing if :
-     *  -> the [PLAYR] headers are at the beginning of the messages
-     *  -> the [PLAYR] messages have the right length
-     *  -> the rest of the [LIST!] message has the right length (from position 5 on)
-     *  Other message format problems are not taken into account
+     *                                   we are testing if :
+     *                                   -> the [PLAYR] headers are at the beginning of the messages
+     *                                   -> the [PLAYR] messages have the right length
+     *                                   -> the rest of the [LIST!] message has the right length (from position 5 on)
+     *                                   Other message format problems are not taken into account
      */
     public static String[] readPlayersIds() throws IOException, IncorrectMessageException {
         int res;
@@ -386,7 +401,7 @@ public class Client {
      * @param gameId the id of the game
      * @return [width, height] of the maze; {-1; -1} if the game doesn't exist
      */
-    public static int[] getMazeSizeForGame(short gameId) throws IOException, IncorrectMessageException {
+    public static int[] getMazeSizeForGame(short gameId) throws IncorrectMessageException, IOException {
         // make the message
         String m = "SIZE? ";
         byte[] message_to_send = new byte[10];
@@ -449,8 +464,9 @@ public class Client {
      * Converts a byte into a short, if it was originally an uint_8 number
      * (one byte, unsigned).
      * The & 0xFF makes the conversion (otherwise it would be treated as a signed byte)
+     *
      * @param b the byte to convert
-     * @return  the converted short
+     * @return the converted short
      */
     public static short getShortFromByte(byte b) {
         return (short) (b & 0xFF); // to convert
@@ -458,6 +474,7 @@ public class Client {
 
     /**
      * Converts a short into 1 byte, unsigned (uint_8 equivalent)
+     *
      * @param i the number to convert
      * @return the converted byte
      */
@@ -467,21 +484,23 @@ public class Client {
 
     /**
      * Logs a length error. To be used when the received message is not the right length
-     * @param context   a string to explain where the error occurred. Usually the header of the received message
-     * @param expected  the expected number of bytes
-     * @param received  the received number of bytes
+     *
+     * @param context  a string to explain where the error occurred. Usually the header of the received message
+     * @param expected the expected number of bytes
+     * @param received the received number of bytes
      * @throws IncorrectMessageException because the message doesn't respect the protocol
      */
     public static void logIncorrectLengthMessage(String context, int expected, int received) throws IncorrectMessageException {
-        LOGGER.warning(String.format("ERROR : Reading a %s message, expected %d bytes but only received %d\n", 
+        LOGGER.warning(String.format("ERROR : Reading a %s message, expected %d bytes but only received %d\n",
                 context, expected, received));
         throw new IncorrectMessageException("Incorrect message length.");
     }
 
     /**
      * Logs an error. To be used when the received message doesn't start with the correct header
-     * @param expected  the expected header
-     * @param received  the received header
+     *
+     * @param expected the expected header
+     * @param received the received header
      * @throws IncorrectMessageException because the message doesn't follow protocol
      */
     public static void logIncorrectHeader(String expected, String received) throws IncorrectMessageException {
