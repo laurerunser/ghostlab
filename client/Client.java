@@ -40,7 +40,7 @@ public class Client {
         }
         LOGGER.info("TCP connection established\n");
 
-        readNbPlayersAnswer();
+        /* readNbPlayersAnswer();
         getAllGamesAndNbOfPlayers();
         getMazeSizeForGame((short) 2);
         getMazeSizeForGame((short) 100);
@@ -51,7 +51,7 @@ public class Client {
         registerToGame((short) 2, "TESTtest");
         getPlayersForGame((short) 3);
         getPlayersForGame((short) 1);
-        getPlayersForGame((short) 100);
+        getPlayersForGame((short) 100); */
 
 
         // start UI
