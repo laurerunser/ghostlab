@@ -1,5 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+
+import java.awt.Dimension;
 import java.io.IOException;
 
 
@@ -83,23 +85,31 @@ public class PregamePanel extends JPanel {
         JPanel playersIDPannel = createListOfPlayers(playersID);
 
         // make the popup
-        JDialog popup = new JDialog();
-        popup.setTitle("Game " + gameId + " details");
-        popup.add(playersIDPannel);
-        popup.add(getMazeSize(gameId)); // add the size of the maze
+        JFrame newFrame = new JFrame();
+        JDialog dialog = new JDialog(newFrame, "Game " + gameId + " details", true);
+        dialog.add(playersIDPannel);
+        dialog.add(getMazeSize(gameId)); // add the size of the maze
 
         // add register button
         JButton registerButton = new JButton("Choose this game !");
         JTextField pseudoField = new JTextField(8);
+        JPanel innerPanel = new JPanel();
+        innerPanel.add(pseudoField);
+
         pseudoField.setBorder(new TitledBorder("Your name : "));
         registerButton.addActionListener(e -> {
             selectGame(gameId, pseudoField.getText());
-            popup.setVisible(false);
+            dialog.setVisible(false);
         });
-        popup.add(registerButton);
+        innerPanel.add (registerButton);
+        dialog.add(innerPanel);
 
         // make the popup visible
-        popup.setVisible(true);
+
+        dialog.pack();
+        dialog.setSize(new Dimension(160, 120));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
 
         // there is an automatic "close" button to hide the dialog
     }
@@ -178,14 +188,14 @@ public class PregamePanel extends JPanel {
 
     public void createGame() {
         // make the popup
-        JDialog popup = new JDialog();
-        popup.setTitle("Create a game");
+        JFrame popup = new JFrame();
+        JDialog dialog = new JDialog(popup, "Create game", true);
 
-        // add register button
-        JButton registerButton = new JButton("Let's go !");
+        // add create button
+        JButton createButton = new JButton("Create !");
         JTextField pseudoField = new JTextField(8);
         pseudoField.setBorder(new TitledBorder("Your name : "));
-        registerButton.addActionListener(e -> {
+        createButton.addActionListener(e -> {
             int res = Client.createGame(pseudoField.getText());
             if (res == -1) { // failure
                 JOptionPane.showMessageDialog(this, "Sorry, can't create the game. Try again later !");
@@ -193,13 +203,19 @@ public class PregamePanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "You created game number "
                         + res + ". Click on START to play !");
             }
-            popup.dispose();
+            dialog.dispose();
         });
-        popup.add(pseudoField);
-        popup.add(registerButton);
+        JPanel innerPanel = new JPanel();
+        innerPanel.add(pseudoField);
+        innerPanel.add(createButton);
 
-        // make the popup visible
-        popup.setVisible(true);
+        dialog.add(innerPanel);
+
+        // make the popup visible and pretty
+        dialog.pack();
+        dialog.setSize(new Dimension(160, 120));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     public JLabel getMazeSize(int gameID) {
