@@ -7,7 +7,7 @@ public class Ui extends JFrame {
 
     public Ui () throws IOException, IncorrectMessageException {
         this.setTitle("Gostlab");
-        this.setSize(600, 800);
+        this.setSize(600, 600);
         this.setResizable(false);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
         this.add(principal);

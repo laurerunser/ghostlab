@@ -193,8 +193,9 @@ public class PregamePanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "You created game number "
                         + res + ". Click on START to play !");
             }
-            popup.setVisible(false);
+            popup.dispose();
         });
+        popup.add(pseudoField);
         popup.add(registerButton);
 
         // make the popup visible
