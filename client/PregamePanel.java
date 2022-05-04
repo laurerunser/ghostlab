@@ -29,7 +29,7 @@ public class PregamePanel extends JPanel {
         // read the first message sent by the server
         // and store the number of players for each available game
         // The number is 0 if the game is not available (started or not yet created)
-        int[] nbPlayers = Client.readNbPlayersAnswer();
+        int[] nbPlayers = PregameLogic.readNbPlayersAnswer();
 
         // for each available game, add a button with the number of the game
         addListOfGames(nbPlayers);
@@ -54,7 +54,7 @@ public class PregamePanel extends JPanel {
 
         // get the updated games and add them to the panel
         try {
-            int[] nbPlayers = Client.getAllGamesAndNbOfPlayers();
+            int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
             addListOfGames(nbPlayers);
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,7 +69,7 @@ public class PregamePanel extends JPanel {
         String[] playersID = null;
         try {
             // get the list of players and make a panel for them
-            playersID = Client.getPlayersForGame((short) gameId);
+            playersID = PregameLogic.getPlayersForGame((short) gameId);
 
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
@@ -140,7 +140,7 @@ public class PregamePanel extends JPanel {
         // try to register the player
         int res = 0;
         try {
-            res = Client.registerToGame((short) gameId, playerId);
+            res = PregameLogic.registerToGame((short) gameId, playerId);
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
         }
@@ -160,7 +160,7 @@ public class PregamePanel extends JPanel {
     public void startGame() {
         if (isGameSelected) {
             try {
-                Client.sendStart();
+                PregameLogic.sendStart();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -173,7 +173,7 @@ public class PregamePanel extends JPanel {
         if (isGameSelected) {
             boolean res = false;
             try {
-                res = Client.unregisterFromGame();
+                res = PregameLogic.unregisterFromGame();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -197,7 +197,7 @@ public class PregamePanel extends JPanel {
         JTextField pseudoField = new JTextField(8);
         pseudoField.setBorder(new TitledBorder("Your name : "));
         createButton.addActionListener(e -> {
-            int res = Client.createGame(pseudoField.getText());
+            int res = PregameLogic.createGame(pseudoField.getText());
             if (res == -1) { // failure
                 JOptionPane.showMessageDialog(this, "Sorry, can't create the game. Try again later !");
             } else { // success
@@ -223,7 +223,7 @@ public class PregamePanel extends JPanel {
         // get the size
         int[] size = null;
         try {
-            size = Client.getMazeSizeForGame((short) gameID);
+            size = PregameLogic.getMazeSizeForGame((short) gameID);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
