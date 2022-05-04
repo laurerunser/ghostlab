@@ -23,7 +23,7 @@ void *handle_client_first_connection(void *args_p) {
 
     // send the list of games
     send_list_of_games(sock_fd);
-    fprintf(stderr, "GAMES and OGAME message sent to fd = %d\n", sock_fd);
+    fprintf(stderr, "fd %d : GAMES and OGAME message sent\n", sock_fd);
 
     // at beginning of loop, current_player is a placeholder
     // game_number = -1 to say the player is not registered in a game
@@ -47,7 +47,7 @@ void *handle_client_first_connection(void *args_p) {
             if (!isRecvRightLength(res, 17, "NEWPL")) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
-            fprintf(stderr, "received NEWPL message from fd = %d\n", sock_fd);
+            fprintf(stderr, "fd %d : received NEWPL message\n", sock_fd);
             create_new_game(sock_fd, buf, args->client_address);
         } else if (strncmp("REGIS", buf, 5) == 0) {
             res = recv(sock_fd,&buf[5], 20, 0);
@@ -55,8 +55,7 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
             uint8_t game_id = buf[21];
-            printf("%s\n", buf);
-            fprintf(stderr, "received REGIS message from fd = %d for game id = %d\n", sock_fd, game_id);
+            fprintf(stderr, "fd %d : received REGIS message for game id = %d\n", sock_fd, game_id);
             register_player(sock_fd, game_id, buf, args->client_address);
         } else if (strncmp("UNREG", buf, 5) == 0) {
             res = recv(sock_fd, &buf[5], 3, 0);
@@ -64,7 +63,7 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;
              }
-            fprintf(stderr, "received UNREG message from fd = %d\n", sock_fd);
+            fprintf(stderr, "fd %d : received UNREG message\n", sock_fd);
             unregister_player(sock_fd);
         } else if (strncmp("SIZE?", buf, 5) == 0) {
             res = recv(sock_fd, &buf[5], 5, 0);
@@ -73,7 +72,7 @@ void *handle_client_first_connection(void *args_p) {
                 break;
              }
             uint8_t game_id = buf[6];
-            fprintf(stderr, "received SIZE? message from fd = %d "
+            fprintf(stderr, "fd %d : received SIZE? message "
                             "for game_id = %d\n", sock_fd, game_id);
             send_size_of_maze(sock_fd, game_id);
         } else if (strncmp("LIST?", buf, 5) == 0) {
@@ -82,7 +81,7 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
             uint8_t game_id = buf[6];
-            fprintf(stderr, "received LIST? message from fd = %d "
+            fprintf(stderr, "fd %d : received LIST? message "
                             "for game_id = %d\n", sock_fd, game_id);
             send_list_of_players(sock_fd, game_id);
         } else if (strncmp("GAME?", buf, 5) == 0) {
@@ -90,7 +89,7 @@ void *handle_client_first_connection(void *args_p) {
             if (!isRecvRightLength(res, 3, "GAME?")) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
-            fprintf(stderr, "received GAME? message from fd = %d\n", sock_fd);
+            fprintf(stderr, "fd %d : received GAME? message\n", sock_fd);
             send_list_of_games(sock_fd);
         } else if (strncmp("START", buf, 5) == 0) {
             res = recv(sock_fd, &buf[5], 3, 0);
@@ -98,7 +97,7 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;
             }
-            fprintf(stderr, "received START message from fd = %d\n", sock_fd);
+            fprintf(stderr, "fd %d : received START message\n", sock_fd);
             bool stop = handle_start_message(sock_fd);
             // player has sent START and cannot send messages anymore for pregame stuff
             // this thread dies (returns NULL) and another one will be spun up
@@ -168,7 +167,7 @@ void send_list_of_games(int sock_fd) {
     memmove(first_message, "GAMES ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(first_message + 6, &nb_available_games, 1);
     memmove(first_message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
-    fprintf(stderr, "sent GAMES message to fd = %d\n", sock_fd);
+    fprintf(stderr, "fd %d : sent GAMES message\n", sock_fd);
 
     // send the messages
     send_all(sock_fd, first_message, 10);
@@ -177,13 +176,13 @@ void send_list_of_games(int sock_fd) {
         free(o_game_messages[i]);
     }
 
-    fprintf(stderr, "sent OGAME messages to fd = %d\n", sock_fd);
+    fprintf(stderr, "fd %d : sent OGAME messages\n", sock_fd);
 }
 
 void send_list_of_players(int sock_fd, int game_id) {
     if (!games[game_id].is_created) { // game doesn't exist
         send_all(sock_fd, "DUNNO***", 8);
-        fprintf(stderr, "sent DUNNO message to fd = %d\n", sock_fd);
+        fprintf(stderr, "fd %d : sent DUNNO message\n", sock_fd);
     } else { // game exists
         // get number and ids of players
         char player_ids[4][8];
@@ -221,7 +220,7 @@ void send_list_of_players(int sock_fd, int game_id) {
                 send_all(sock_fd, message, sizeof(message));
             }
         }
-        fprintf(stderr, "sent LIST! and PLAYR messages to fd = %d\n", sock_fd);
+        fprintf(stderr, "fd %d : sent LIST! and PLAYR messages\n", sock_fd);
     }
 }
 
@@ -234,7 +233,7 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
         pthread_mutex_unlock(&mutex);
         char message[] = "DUNNO***";
         send_all(sock_fd, message, 8);
-        fprintf(stderr, "sent DUNNO message to fd = %d\n", sock_fd);
+        fprintf(stderr, "fd %d : sent DUNNO message\n", sock_fd);
     } else {
         // we are not testing if the game has been started yet, or
         // if it has too many players for the user to register
@@ -254,13 +253,13 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
         memmove(message + 13, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
 
         send_all(sock_fd, message, 16);
-        fprintf(stderr, "sent SIZE! message to fd = %d\n", sock_fd);
+        fprintf(stderr, "fd %d : sent SIZE! message\n", sock_fd);
     }
 }
 
 bool handle_start_message(int sock_fd) {
     if (current_player.game_number == -1) { // if player is not registered, just ignore the START message
-        fprintf(stderr, "received START message from fd = %d "
+        fprintf(stderr, "fd %d : received START message "
                         "but player is not registered into a game\n", sock_fd);
         return false;
     }
@@ -269,7 +268,7 @@ bool handle_start_message(int sock_fd) {
     games[current_player.game_number].players[current_player.player_number].sent_start = true;
 
     // player is registered and ready to go
-    fprintf(stderr, "Player fd = %d is ready to start\n", sock_fd);
+    fprintf(stderr, "fd %d : is ready to start\n", sock_fd);
 
     // check if the game is ready to start
     bool ready_to_start = true;
@@ -322,7 +321,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     if (current_player.game_number != -1) {
         char message[] = "REGNO***";
         send_all(sock_fd, message, 8);
-        fprintf(stderr, "Sent [REGNO] to player fd = %d tried to create a new game "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to create a new game "
                         "but they are already registered into game number %d\n",
                 sock_fd, current_player.game_number);
     }
@@ -342,19 +341,17 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     if (game_id == -1) { // there is no space left to create a new game
         char message[] = "REGNO***";
         send_all(sock_fd, message, 8);
-        fprintf(stderr, "Sent [REGNO] to player fd = %d tried to create a new game "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to create a new game "
                         "but there is not space left\n", sock_fd);
+        return;
     }
-
     // everything is ok, creating the game
     games[game_id].is_created = true;
     games[game_id].has_started = false;
     games[game_id].nb_ghosts_left = 4;
 
     // create the multicast socket
-    char *port;
-    sprintf(port, "%d", game_id+4444);
-    games[game_id].multicast_socket = create_UDP_socket(*client_address, port);
+    games[game_id].multicast_socket = create_UDP_socket();
 
     // copy of the maze
     int **maze_blocks = malloc(mazes[0].width * sizeof(int *));
@@ -382,14 +379,14 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
 
     // send the message
     send_regok_message(sock_fd, game_id);
-    fprintf(stderr, "Player fd = %d has created the game id = %d\n", sock_fd, game_id);
+    fprintf(stderr, "fd %d : has created the game id = %d\n", sock_fd, game_id);
 }
 
 void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address) {
     // check if player is already registered in a game
     if (current_player.game_number != -1) {
         send_all(sock_fd, "REGNO***", 8);
-        fprintf(stderr, "Sent [REGNO] to player fd = %d tried to register into game number %d "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but they are already registered into game number %d\n",
                 sock_fd, game_id, current_player.game_number);
         return;
@@ -400,7 +397,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     // check if game exists
     if (!games[game_id].is_created) {
         send_all(sock_fd, "REGNO***", 8);
-        fprintf(stderr, "Sent [REGNO] to player fd = %d tried to register into game number %d "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but game doesn't exist\n",
                 sock_fd, game_id);
         return;
@@ -409,7 +406,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     // check that game is not already started
     if (games[game_id].has_started) {
         send_all(sock_fd, "REGNO***", 8);
-        fprintf(stderr, "Sent [REGNO] to player fd = %d tried to register into game number %d "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but game has already started\n",
                 sock_fd, game_id);
         return;
@@ -425,7 +422,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
     }
     if (spot_left == -1) {
         send_all(sock_fd, "REGNO***", 8);
-        fprintf(stderr, "Sent [REGNO[ to player fd = %d tried to register into game number %d "
+        fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but there is no spot left\n",
                 sock_fd, game_id);
         return;
@@ -438,7 +435,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
 
     // send message
     send_regok_message(sock_fd, game_id);
-    fprintf(stderr,"Player fd = %d is registered into game number %d\n",
+    fprintf(stderr,"fd %d : is registered into game number %d\n",
             sock_fd, game_id);
 }
 
@@ -449,13 +446,15 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
     games[game_id].players[player_index].tcp_socket = sock_fd;
 
-    // get player's udp port
+    // get player's udp port and put it in the address -> will be used to send UDP messages
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
+    int port = atoi(udp_port);
+    client_address->sin_port = port;
 
     // make the UDP socket
-    games[game_id].players[player_index].udp_socket = create_UDP_socket(*client_address, udp_port);
+    games[game_id].players[player_index].udp_socket = create_UDP_socket();
     games[game_id].players[player_index].address = client_address;
 
     // update current_player
@@ -487,5 +486,5 @@ void unregister_player(int sock_fd) {
     memmove(message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
 
     send_all(sock_fd, message, 10);
-    fprintf(stderr, "Player fd = %d unregistered from games number %d\n", sock_fd, game_id);
+    fprintf(stderr, "fd %d : unregistered from games number %d\n", sock_fd, game_id);
 }

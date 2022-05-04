@@ -1,5 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+
+import java.awt.Dimension;
 import java.io.IOException;
 
 
@@ -27,7 +29,7 @@ public class PregamePanel extends JPanel {
         // read the first message sent by the server
         // and store the number of players for each available game
         // The number is 0 if the game is not available (started or not yet created)
-        int[] nbPlayers = Client.readNbPlayersAnswer();
+        int[] nbPlayers = PregameLogic.readNbPlayersAnswer();
 
         // for each available game, add a button with the number of the game
         addListOfGames(nbPlayers);
@@ -52,7 +54,7 @@ public class PregamePanel extends JPanel {
 
         // get the updated games and add them to the panel
         try {
-            int[] nbPlayers = Client.getAllGamesAndNbOfPlayers();
+            int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
             addListOfGames(nbPlayers);
         } catch (Exception e) {
             e.printStackTrace();
@@ -67,7 +69,7 @@ public class PregamePanel extends JPanel {
         String[] playersID = null;
         try {
             // get the list of players and make a panel for them
-            playersID = Client.getPlayersForGame((short) gameId);
+            playersID = PregameLogic.getPlayersForGame((short) gameId);
 
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
@@ -83,23 +85,32 @@ public class PregamePanel extends JPanel {
         JPanel playersIDPannel = createListOfPlayers(playersID);
 
         // make the popup
-        JDialog popup = new JDialog();
-        popup.setTitle("Game " + gameId + " details");
-        popup.add(playersIDPannel);
-        popup.add(getMazeSize(gameId)); // add the size of the maze
+        JFrame newFrame = new JFrame();
+        JDialog dialog = new JDialog(newFrame, "Game " + gameId + " details", true);
+        
 
         // add register button
         JButton registerButton = new JButton("Choose this game !");
         JTextField pseudoField = new JTextField(8);
+        JPanel innerPanel = new JPanel();
+        innerPanel.add(pseudoField);
+
         pseudoField.setBorder(new TitledBorder("Your name : "));
         registerButton.addActionListener(e -> {
             selectGame(gameId, pseudoField.getText());
-            popup.setVisible(false);
+            dialog.setVisible(false);
         });
-        popup.add(registerButton);
+        innerPanel.add (registerButton);
+        dialog.add(innerPanel);
 
         // make the popup visible
-        popup.setVisible(true);
+
+        innerPanel.add(playersIDPannel);
+        innerPanel.add(getMazeSize(gameId)); // add the size of the maze
+
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
 
         // there is an automatic "close" button to hide the dialog
     }
@@ -129,7 +140,7 @@ public class PregamePanel extends JPanel {
         // try to register the player
         int res = 0;
         try {
-            res = Client.registerToGame((short) gameId, playerId);
+            res = PregameLogic.registerToGame((short) gameId, playerId);
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
         }
@@ -149,7 +160,7 @@ public class PregamePanel extends JPanel {
     public void startGame() {
         if (isGameSelected) {
             try {
-                Client.sendStart();
+                PregameLogic.sendStart();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -162,7 +173,7 @@ public class PregamePanel extends JPanel {
         if (isGameSelected) {
             boolean res = false;
             try {
-                res = Client.unregisterFromGame();
+                res = PregameLogic.unregisterFromGame();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -178,34 +189,41 @@ public class PregamePanel extends JPanel {
 
     public void createGame() {
         // make the popup
-        JDialog popup = new JDialog();
-        popup.setTitle("Create a game");
+        JFrame popup = new JFrame();
+        JDialog dialog = new JDialog(popup, "Create game", true);
 
-        // add register button
-        JButton registerButton = new JButton("Let's go !");
+        // add create button
+        JButton createButton = new JButton("Create !");
         JTextField pseudoField = new JTextField(8);
         pseudoField.setBorder(new TitledBorder("Your name : "));
-        registerButton.addActionListener(e -> {
-            int res = Client.createGame(pseudoField.getText());
+        createButton.addActionListener(e -> {
+            int res = PregameLogic.createGame(pseudoField.getText());
             if (res == -1) { // failure
                 JOptionPane.showMessageDialog(this, "Sorry, can't create the game. Try again later !");
             } else { // success
                 JOptionPane.showMessageDialog(this, "You created game number "
                         + res + ". Click on START to play !");
             }
-            popup.setVisible(false);
+            dialog.dispose();
         });
-        popup.add(registerButton);
+        JPanel innerPanel = new JPanel();
+        innerPanel.add(pseudoField);
+        innerPanel.add(createButton);
 
-        // make the popup visible
-        popup.setVisible(true);
+        dialog.add(innerPanel);
+
+        // make the popup visible and pretty
+        dialog.pack();
+        dialog.setSize(new Dimension(160, 120));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     public JLabel getMazeSize(int gameID) {
         // get the size
         int[] size = null;
         try {
-            size = Client.getMazeSizeForGame((short) gameID);
+            size = PregameLogic.getMazeSizeForGame((short) gameID);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
