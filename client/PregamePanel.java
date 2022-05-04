@@ -87,8 +87,7 @@ public class PregamePanel extends JPanel {
         // make the popup
         JFrame newFrame = new JFrame();
         JDialog dialog = new JDialog(newFrame, "Game " + gameId + " details", true);
-        dialog.add(playersIDPannel);
-        dialog.add(getMazeSize(gameId)); // add the size of the maze
+        
 
         // add register button
         JButton registerButton = new JButton("Choose this game !");
@@ -106,8 +105,10 @@ public class PregamePanel extends JPanel {
 
         // make the popup visible
 
+        innerPanel.add(playersIDPannel);
+        innerPanel.add(getMazeSize(gameId)); // add the size of the maze
+
         dialog.pack();
-        dialog.setSize(new Dimension(160, 120));
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
 
