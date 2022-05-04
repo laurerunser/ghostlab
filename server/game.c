@@ -125,8 +125,8 @@ void send_welcome_message() {
 
     // send the message
     send_all(sock_fd_tcp, welcome_msg, 39);
-    fprintf(stderr, "Sent welcome message to player id=%s, sockfd = %d\n",
-            this_player->id, sock_fd_tcp);
+    fprintf(stderr, "fd %d : Sent welcome message, player id=%s\n",
+            sock_fd_tcp, this_player->id);
 }
 
 void send_initial_position() {
@@ -149,8 +149,8 @@ void send_initial_position() {
 
     // send message
     send_all(sock_fd_tcp, message, 25);
-    fprintf(stderr, "Sent position message to player id = %s, sockfd = %d\n"
-                    "Position is x=%d y=%d\n", this_player->id, sock_fd_tcp, this_player->x, this_player->y);
+    fprintf(stderr, "fd %d : x=%d y=%d, sent position message to player id = %s \n",
+            sock_fd_tcp, this_player->x, this_player->y, this_player->id);
 }
 
 int receive_move_message(char *context, char *buf) {
@@ -158,7 +158,7 @@ int receive_move_message(char *context, char *buf) {
     if (!isRecvRightLength(res, 7, context)) {
         return -1;
     }
-    fprintf(stderr, "received %s message from fd = %d\n", context, sock_fd_tcp);
+    fprintf(stderr, "fd %d : received %s message\n", sock_fd_tcp, context);
     char *ptr;
     int d = (int) strtol(&buf[6], &ptr, 10);
     if (ptr == NULL) {
@@ -191,11 +191,11 @@ void move_vertical(int steps, char *context, int direction) {
             maze->nb_ghosts -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
                     this_player->y);
             send_score_multicast();
         } else { // wall or another player : blocked
-            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
         }
     }
@@ -203,7 +203,7 @@ void move_vertical(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -232,7 +232,7 @@ void move_horizontal(int steps, char *context, int direction) {
             game->nb_ghosts_left -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "Player fd = %d captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
                     this_player->y);
             send_score_multicast();
 
@@ -244,7 +244,7 @@ void move_horizontal(int steps, char *context, int direction) {
                 send_endgame_multicast();
             }
         } else { // wall or another player : blocked
-            fprintf(stderr, "Player fd=%d ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
             break;
         }
     }
@@ -252,7 +252,7 @@ void move_horizontal(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "Player fd=%d moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
@@ -285,7 +285,7 @@ void send_MOVEF() {
 
     // send MOVEF message
     send_all(sock_fd_tcp, mess, 21);
-    fprintf(stderr, "Send MOVEF message to player fd=%d\n", sock_fd_tcp);
+    fprintf(stderr, "fd %d : Send MOVEF message\n", sock_fd_tcp);
 }
 
 void send_MOVE() {
@@ -301,7 +301,7 @@ void send_MOVE() {
     free(y_with_stars);
 
     send_all(sock_fd_tcp, mess, 16);
-    fprintf(stderr, "Send [MOVE!] to player fd=%d\n", sock_fd_tcp);
+    fprintf(stderr, "fd %d : Sent [MOVE!] message\n", sock_fd_tcp);
 }
 
 bool game_has_ended() {
@@ -378,7 +378,7 @@ void send_list_of_players_for_game() {
             send_all(sock_fd_tcp, message, 31);
         }
     }
-    fprintf(stderr, "sent GLIS! and GPLYR messages to fd = %d\n", sock_fd_tcp);
+    fprintf(stderr, "fd %d : sent GLIS! and GPLYR messages\n", sock_fd_tcp);
 }
 
 void send_score_multicast() {
@@ -395,7 +395,7 @@ void send_score_multicast() {
     struct sockaddr *their_addr;
     sendto(game->multicast_socket, mess, strlen(mess), 0,
            their_addr, (socklen_t) sizeof(struct sockaddr_in));
-    fprintf(stderr, "Sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
+    fprintf(stderr, "sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
 }
 
 void send_endgame_multicast() {
@@ -456,7 +456,7 @@ void send_personal_message() {
     // if player isn't in the game
     if (recipient == NULL) {
         send_all(sock_fd_tcp, "NSEND***", 8);
-        fprintf(stderr, "Sent NSEND to player fd=%d : recipient id = %s is not in the game\n",
+        fprintf(stderr, "fd %d : Sent NSEND -> recipient id = %s is not in the game\n",
                 sock_fd_tcp, &id[1]);
         return;
     }
