@@ -40,7 +40,7 @@ public class Client {
         }
         LOGGER.info("TCP connection established\n");
 
-/*        // start UI
+        // start UI
         javax.swing.SwingUtilities.invokeLater(
                 () -> {
                     Ui v = null;
@@ -52,7 +52,7 @@ public class Client {
                     }
                     v.setVisible(true);
                 }
-        );*/
+        );
 
         readNbPlayersAnswer();
         getAllGamesAndNbOfPlayers();
