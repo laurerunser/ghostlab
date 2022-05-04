@@ -55,7 +55,6 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
             uint8_t game_id = buf[21];
-            printf("%s\n", buf);
             fprintf(stderr, "received REGIS message from fd = %d for game id = %d\n", sock_fd, game_id);
             register_player(sock_fd, game_id, buf, args->client_address);
         } else if (strncmp("UNREG", buf, 5) == 0) {
@@ -344,17 +343,15 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
         send_all(sock_fd, message, 8);
         fprintf(stderr, "Sent [REGNO] to player fd = %d tried to create a new game "
                         "but there is not space left\n", sock_fd);
+        return;
     }
-
     // everything is ok, creating the game
     games[game_id].is_created = true;
     games[game_id].has_started = false;
     games[game_id].nb_ghosts_left = 4;
 
     // create the multicast socket
-    char *port;
-    sprintf(port, "%d", game_id+4444);
-    games[game_id].multicast_socket = create_UDP_socket(*client_address, port);
+    games[game_id].multicast_socket = create_UDP_socket();
 
     // copy of the maze
     int **maze_blocks = malloc(mazes[0].width * sizeof(int *));
@@ -449,13 +446,15 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
     games[game_id].players[player_index].tcp_socket = sock_fd;
 
-    // get player's udp port
+    // get player's udp port and put it in the address -> will be used to send UDP messages
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);
     udp_port[4] = '\0';
+    int port = atoi(udp_port);
+    client_address->sin_port = port;
 
     // make the UDP socket
-    games[game_id].players[player_index].udp_socket = create_UDP_socket(*client_address, udp_port);
+    games[game_id].players[player_index].udp_socket = create_UDP_socket();
     games[game_id].players[player_index].address = client_address;
 
     // update current_player

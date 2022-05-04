@@ -138,39 +138,11 @@ bool isRecvRightLength(long received, long expected, char* context) {
 }
 
 
-int create_UDP_socket(struct sockaddr_in addr, char *port) {
-    int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    char *ip;
-    sprintf(ip, "%x", addr.sin_addr.s_addr);
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if ((rv = getaddrinfo(ip, port, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+int create_UDP_socket() {
+    int socket_fd = socket(PF_INET,SOCK_STREAM,0);
+    if (socket_fd == -1) {
+        perror("Problem while creating the socket\n");
+        exit(1);
     }
-
-    // loop through all the results
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                             p->ai_protocol)) == -1) {
-            perror("socket");
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "failed to create multicast socket\n");
-        return 2;
-    }
-
-    freeaddrinfo(servinfo);
-    return sockfd;
+    return socket_fd;
 }

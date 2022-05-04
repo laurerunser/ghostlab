@@ -35,7 +35,7 @@ void send_all(int, char*, int);
  * Creates a TCP socket and returns the file descriptor
  */
 int create_TCP_socket(void);
-int create_UDP_socket(struct sockaddr_in addr, char *port);
+int create_UDP_socket();
 
 /*
  * Returns the int as a char[3]; with leading zeroes if needed
