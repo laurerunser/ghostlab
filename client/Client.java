@@ -54,6 +54,7 @@ public class Client {
                 }
         );
 
+        /*
         readNbPlayersAnswer();
         getAllGamesAndNbOfPlayers();
         getMazeSizeForGame((short) 2);
@@ -66,6 +67,7 @@ public class Client {
         getPlayersForGame((short) 3);
         getPlayersForGame((short) 1);
         getPlayersForGame((short) 100);
+        */
     }
 
     /**
