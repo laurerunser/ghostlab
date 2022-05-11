@@ -130,11 +130,13 @@ public class PregamePanel extends JPanel {
     }
 
     public void selectGame(int gameId, String playerId) {
-        // pad the ID with spaces until it is the right length
-        // the ID cannot be too big, because the Textfield used is limited to 8 chars
-        // (see `seeGameDetails()` method)
-        while (playerId.length() < 8) {
-            playerId = playerId.concat(" ");
+        // make the id the right length
+        while (playerId.length() != 8) {
+            if (playerId.length() < 8) { // if the ID is too small, pad it with spaces
+                playerId = playerId.concat(" ");
+            } else { // if the ID is too big, cut it down until it fits
+                playerId = playerId.substring(0, playerId.length()- 1);
+            }
         }
 
         // try to register the player
