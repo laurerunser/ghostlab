@@ -159,6 +159,7 @@ public class PregameLogic {
 
             game_id = Client.getShortFromByte(byte_header[1]); // first is a space, then the number
             Client.LOGGER.info(String.format("Received [REGOK] : game id is %d\n", game_id));
+            return game_id;
         } else {
             Client.logIncorrectHeader("REGNO or REGOK", header);
         }
