@@ -50,7 +50,7 @@ public class PregamePanel extends JPanel {
 
     public void refreshListOfGames() {
         // remove current content
-        listOfGames.removeAll();
+        listOfGames = new JPanel();
 
         // get the updated games and add them to the panel
         try {
@@ -62,7 +62,7 @@ public class PregamePanel extends JPanel {
             e.printStackTrace();
             System.exit(1);
         }
-        // this method is used inside of a listener, so there needs to be
+        // this method is used inside a listener, so there needs to be
         // a try/catch block
     }
 
