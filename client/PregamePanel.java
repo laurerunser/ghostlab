@@ -131,7 +131,21 @@ public class PregamePanel extends JPanel {
         return playersIDPanel;
     }
 
+    public String validate_id(String playerId) {
+        while (playerId.length() != 8) {
+            if (playerId.length() < 8) { // if the ID is too small, pad it with spaces
+                playerId = playerId.concat(" ");
+            } else { // if the ID is too big, cut it down until it fits
+                playerId = playerId.substring(0, playerId.length()- 1);
+            }
+        }
+        return playerId;
+    }
+
     public void selectGame(int gameId, String playerId) {
+        // make the id the right length
+        playerId = validate_id(playerId);
+
         // try to register the player
         int res = -1;
         try {
@@ -156,7 +170,7 @@ public class PregamePanel extends JPanel {
         if (isGameSelected) {
             try {
                 PregameLogic.sendStart();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         } else {
@@ -174,7 +188,7 @@ public class PregamePanel extends JPanel {
             }
             if (res) {
                 JOptionPane.showMessageDialog(this, "You have been unregistered !");
-		isGameSelected = true;
+		        isGameSelected = true;
             } else {
                 JOptionPane.showMessageDialog(this, "Sorry, try again later.");
             }

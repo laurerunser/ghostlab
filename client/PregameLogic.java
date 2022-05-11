@@ -99,6 +99,7 @@ public class PregameLogic {
     public static int createGame(String id) {
         // make the message
         String m = "NEWPL " + id + " " + String.format("%04d", Client.playerUDPPort) + "***";
+        System.out.println(m.length());
         byte[] message = m.getBytes(StandardCharsets.UTF_8);
 
         // send the message
