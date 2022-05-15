@@ -91,6 +91,20 @@ public class Client {
         return (byte) (i & 0xff);
     }
 
+
+    /**
+     * Reads the uint_16 (2 bytes) encoded in little endian and returns the int
+     * @param b         the byte array to read from
+     * @param offset    the position of the first byte of the number
+     * @return the int read from the array
+     */
+    public static int getIntFromLittleEndian(byte[] b, int offset) {
+        int res = b[offset] & 0xFF;
+        res += (b[offset + 1] & 0xFF) << 8;
+
+        return res;
+    }
+
     /**
      * Logs a length error. To be used when the received message is not the right length
      *

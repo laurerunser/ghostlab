@@ -1,7 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
-import java.awt.Dimension;
+import java.awt.*;
 import java.io.IOException;
 
 
@@ -38,20 +38,21 @@ public class PregamePanel extends JPanel {
     }
 
     public void addListOfGames(int[] nbPlayers) {
+        listOfGames = new JPanel();
+        listOfGames.setLayout(new GridLayout());
         for (int i = 0; i < nbPlayers.length; i++) {
+            System.out.println("game " + i);
             if (nbPlayers[i] > 0) {
+                System.out.println("needs a button");
                 JButton bouton = new JButton("game " + i);
                 int j = i; // the variable in the listener below must be effectively final
                 bouton.addActionListener(e -> seeGameDetails(j));
-                listOfGames.add(bouton);
+                listOfGames.add(bouton, i-1);
             }
         }
     }
 
     public void refreshListOfGames() {
-        // remove current content
-        listOfGames = new JPanel();
-
         // get the updated games and add them to the panel
         try {
             int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
@@ -119,14 +120,16 @@ public class PregamePanel extends JPanel {
 
     public JPanel createListOfPlayers(String[] playersID) {
         JPanel playersIDPanel = new JPanel();
+        playersIDPanel.setLayout(new GridLayout());
         for (int j = 0; j < playersID.length; j++) {
             JLabel joueur = new JLabel(j + " :" + playersID[j]);
-            playersIDPanel.add(joueur);
+            playersIDPanel.add(joueur, j);
         }
+
         // add how many spots are left
         int spotsLeft = 4 - playersID.length;
-        JLabel spotsLeftLabel = new JLabel("There are " + spotsLeft + " left !");
-        playersIDPanel.add(spotsLeftLabel);
+        JLabel spotsLeftLabel = new JLabel("There are " + spotsLeft + " spots left !");
+        playersIDPanel.add(spotsLeftLabel, playersID.length);
 
         return playersIDPanel;
     }
@@ -172,6 +175,7 @@ public class PregamePanel extends JPanel {
                 PregameLogic.sendStart();
             } catch (Exception e) {
                 e.printStackTrace();
+                System.exit(1);
             }
         } else {
             JOptionPane.showMessageDialog(this, "You aren't registered into a game yet !");

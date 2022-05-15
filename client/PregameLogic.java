@@ -245,11 +245,15 @@ public class PregameLogic {
     /**
      * Sends the [START...] message to the server
      */
-    public static void sendStart() throws IOException {
+    public static void sendStart() throws IOException, IncorrectMessageException {
         byte[] message = "START***".getBytes(StandardCharsets.UTF_8);
         Client.tcp_socket_writer.write(message);
         Client.tcp_socket_writer.flush();
         Client.LOGGER.info("Sent [START] message\n");
+
+        // wait to receive the WELCO message
+        // The game will then be handled by the GameLogic class
+        GameLogic.receiveWelcomeMessage();
     }
 
     /**
