@@ -56,7 +56,7 @@ public class PregamePanel extends JPanel {
         try {
             int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
             addListOfGames(nbPlayers);
-	    listOfGames.updateUI();
+	    listOfGames.repaint();
 
         } catch (Exception e) {
             e.printStackTrace();
