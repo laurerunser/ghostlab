@@ -132,19 +132,10 @@ public class PregamePanel extends JPanel {
     }
 
     public void selectGame(int gameId, String playerId) {
-        // make the id the right length
-        while (playerId.length() != 8) {
-            if (playerId.length() < 8) { // if the ID is too small, pad it with spaces
-                playerId = playerId.concat(" ");
-            } else { // if the ID is too big, cut it down until it fits
-                playerId = playerId.substring(0, playerId.length()- 1);
-            }
-        }
-
         // try to register the player
-        int res = 0;
+        int res = -1;
         try {
-            res = PregameLogic.registerToGame((short) gameId, playerId);
+            res = PregameLogic.registerToGame((short) gameId, verifPseudo(playerId));
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
         }
@@ -202,7 +193,7 @@ public class PregamePanel extends JPanel {
         JTextField pseudoField = new JTextField(8);
         pseudoField.setBorder(new TitledBorder("Your name : "));
         createButton.addActionListener(e -> {
-            int res = PregameLogic.createGame(pseudoField.getText());
+            int res = PregameLogic.createGame(verifPseudo(pseudoField.getText()));
             if (res == -1) { // failure
                 JOptionPane.showMessageDialog(this, "Sorry, can't create the game. Try again later !");
             } else { // success
@@ -237,6 +228,18 @@ public class PregamePanel extends JPanel {
 
         // make the label
         return new JLabel("Maze size : " + size[0] + " * " + size[1]);
+    }
+
+    public String verifPseudo (String playerId){
+        // make the id the right length
+        while (playerId.length() != 8) {
+            if (playerId.length() < 8) { // if the ID is too small, pad it with spaces
+                playerId = playerId.concat(" ");
+            } else { // if the ID is too big, cut it down until it fits
+                playerId = playerId.substring(0, playerId.length()- 1);
+            }
+        }
+        return playerId;
     }
 
 }
