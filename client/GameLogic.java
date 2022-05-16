@@ -150,7 +150,6 @@ public class GameLogic {
         this_player.y = Integer.parseInt(message.substring(5, 8));
     }
 
-
     public static void send_movement_and_log(int d, String context) throws IOException {
         String message = String.format("%s %d***", context, d);
         byte[] buf = message.getBytes(StandardCharsets.UTF_8);
@@ -161,19 +160,6 @@ public class GameLogic {
                 context, d, this_player.x, this_player.y));
     }
 
-    //********************
-    // UDP reception
-    //********************
-    /* you need :
-    - score
-    - caught a ghost
-    - received a UDP personnal message
-    - received a multicast message
-    - received ENDGA
-    - received GOBYE
-    Then you will need to trigger the UI so that it
-    displays the changes
-     */
 
     //**********************
     // Sending messages
