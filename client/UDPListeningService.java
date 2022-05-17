@@ -29,9 +29,9 @@ public class UDPListeningService implements Runnable {
         } else if (header.equals("ENDGA")) {
             signalEndgame();
         } else if (header.equals("MESSA")) {
-            receiveGeneralMessage();
+            receiveMessage(true);
         } else if (header.equals("MESSP")) {
-            receivePersonalMessage();
+            receiveMessage(false);
         } else { // incorrect header
             try {
                 Client.logIncorrectHeader("a UDP header", header);
@@ -100,18 +100,96 @@ public class UDPListeningService implements Runnable {
     }
 
     public void updateGhostPosition() {
+        // receive the rest of the message
+        byte[] data = new byte[11];
+        String message = "";
+        try {
+            DatagramPacket paquet = new DatagramPacket(data, data.length);
+            dso.receive(paquet);
+            if (paquet.getLength() != 11) {
+                Client.logIncorrectLengthMessage("GHOST", 11, paquet.getLength());
+            }
+            message = new String(paquet.getData(), 0, paquet.getLength());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // extract the information
+        int ghost_x = Integer.parseInt(message.substring(1, 4));
+        int ghost_y = Integer.parseInt(message.substring(5, 8));
+        Client.LOGGER.info(String.format("Ghost moved to x=%d, y=%d", ghost_x, ghost_y));
+
+        // TODO : update the UI (make the ghost appear briefly or smth)
 
     }
 
     public void signalEndgame() {
+        // receive the rest of the message
+        byte[] data = new byte[17];
+        String message = "";
+        try {
+            DatagramPacket paquet = new DatagramPacket(data, data.length);
+            dso.receive(paquet);
+            if (paquet.getLength() != 17) {
+                Client.logIncorrectLengthMessage("ENDGA", 17, paquet.getLength());
+            }
+            message = new String(paquet.getData(), 0, paquet.getLength());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
 
+        String player_id = message.substring(1, 9);
+        int winning_score = Integer.parseInt(message.substring(10, 14));
+
+        Client.LOGGER.info(String.format("Player %s won with score %d", player_id, winning_score));
+
+        // TODO : kill the game (maybe update a boolean in GameLogic ?)
+        // TODO : update UI with a pop-up
     }
 
-    public void receiveGeneralMessage() {
+    /**
+     * Receive a message
+     * @param general true if the message is a general one (MESSA), false if it is personal (MESSP)
+     */
+    public void receiveMessage(boolean general) {
+        // receive the rest of the message
+        byte[] data = new byte[213];
+        String message = "";
+        try {
+            DatagramPacket paquet = new DatagramPacket(data, data.length);
+            dso.receive(paquet);
+            // not checking how many bytes were received because
+            // we don't know how big the message really is (only that it is max 200 chars)
+            message = new String(paquet.getData(), 0, paquet.getLength());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
 
+        String sender_id = message.substring(1, 9);
+        String message_received = message.substring(10, message.length()-4);
+        // test this -> I'm not sure we are getting rid of only the +++ at the end of the message
+
+        String context = general?"general":"personal";
+        Client.LOGGER.info(String.format("Player %s sent %s message %s", sender_id, context, message_received));
+
+        GameLogic.PlayerInfo sender = null;
+        for (int i = 0; i<4; i++) {
+            if (GameLogic.players[i].id.equals(sender_id)) {
+                sender = GameLogic.players[i];
+            }
+        }
+
+        // only update the UI if the sender is not the current player
+        if (sender != GameLogic.this_player) {
+            // TODO : update the UI
+        }
+
+        // if the sender is the current player, the UI is updated
+        // in the GamePanel, before sending the first SEND? or MALL?
+        // message
     }
 
-    public void receivePersonalMessage() {
-
-    }
 }
