@@ -65,7 +65,7 @@ public class GameLogic {
         Client.LOGGER.info(String.format("Initial player position : x=%d, y=%d\n", x, y));
 
         // ask for all the player's info
-        players = get_players();
+        get_players();
         for (int i = 0; i<4; i++) {
             if (players.length > i && players[i].x == x && players[i].y == y) {
                 this_player = players[i];
@@ -172,7 +172,44 @@ public class GameLogic {
      * @return true if the message was sent, false otherwise
      */
     public static boolean send_personal_message(String message, String recipient_id) {
-        return false;
+        // send the message
+        String mess = String.format("SEND? %s %s***", recipient_id, message);
+        byte[] buf = message.getBytes(StandardCharsets.UTF_8);
+
+        try {
+            Client.tcp_socket_writer.write(buf);
+            Client.tcp_socket_writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        Client.LOGGER.info("Sent SEND? message");
+
+        // read the server's answer
+        buf = new byte[8];
+        try {
+            int res = Client.tcp_socket_reader.read(buf, 0, 8);
+            String answer = new String(buf);
+            if (answer.equals("SEND!***")) {
+                Client.LOGGER.info("Message was sent !");
+                return true;
+            } else if (answer.equals("NSEND***")) {
+                Client.LOGGER.info("Message couldn't be send !");
+                return false;
+            } else {
+                if (res != 8) {
+                    Client.logIncorrectLengthMessage("SEND! or NSEND", 8, res);
+                } else {
+                    Client.logIncorrectHeader("SEND! or NSEND", answer);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        return false; // never executed : if error, program terminates,
+                    // otherwise returns true or false in the second try block
     }
 
     /**
@@ -180,7 +217,18 @@ public class GameLogic {
      * @param message   the message to send, <200 chars, doesn't contain *** or +++
      */
     public static void send_general_message(String message) {
+        String mess = String.format("MALL? %s***", message);
+        byte[] buf = message.getBytes(StandardCharsets.UTF_8);
 
+        try {
+            Client.tcp_socket_writer.write(buf);
+            Client.tcp_socket_writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        Client.LOGGER.info("Sent MALL? message");
     }
 
 
@@ -189,33 +237,101 @@ public class GameLogic {
     //***************
 
     public static void i_quit() {
-        // send the IQUIT message and read GOBYE, then kill the client
-        // the server should kill the connection ? but check in the server
-        // code to be sure. If not, make the server close the sockets, it
-        // is much better
-    }
-
-    // similar to getPlayersForGame in PregameLogic, but
-    // you need to put additional info.
-    // i made you a little class underneath for that, but there is
-    // maybe another better way for that
-    public static PlayerInfo[] get_players() {
-
-        return null;
-    }
-
-    public class PlayerInfo {
-        String id;
-        int x;
-        int y;
-        int score;
-
-        public PlayerInfo(String id, int x, int y, int score) {
-            this.id = id;
-            this.x = x;
-            this.y = y;
-            this.score = score;
+        // send message
+        byte[] buf = "IQUIT***".getBytes(StandardCharsets.UTF_8);
+        try {
+            Client.tcp_socket_writer.write(buf);
+            Client.tcp_socket_writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
         }
+
+        Client.LOGGER.info("Sent IQUIT");
+
+        // no need to read the answer, the server can only acknwloedge
+        // since we are going to terminate the entire program soon,
+        // no need to close all the sockets and reader/writer
+
+        // TODO show a pop-up
+        // the entire program should then die !
+        // don't forget to also kill the UDP server
+
+    }
+
+    public static void get_players() {
+        send_glis();
+        Client.LOGGER.info("Sent GLIS? message");
+
+        int nb_players = read_first_glis_answer();
+        Client.LOGGER.info(String.format("GLIS! : %d players", nb_players));
+
+        players = new PlayerInfo[nb_players];
+        for (int i = 0; i<nb_players; i++) {
+            players[i] = read_player_info();
+        }
+
+    }
+
+    public static void send_glis() {
+        byte[] buf = "GLIS?***".getBytes(StandardCharsets.UTF_8);
+
+        try {
+            Client.tcp_socket_writer.write(buf);
+            Client.tcp_socket_writer.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    public static int read_first_glis_answer() {
+        byte[] buf = new byte[10];
+
+        int nb = 0;
+        try {
+            int res = Client.tcp_socket_reader.read(buf, 0, 10);
+            if (res != 10) {
+                Client.logIncorrectLengthMessage("GLIS!", 10, res);
+            } else if (! new String(buf).startsWith("GLIS!")) {
+                Client.logIncorrectHeader("GLIS!", new String(buf));
+            } else {
+                nb = Client.getShortFromByte(buf[6]);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        return nb;
+    }
+
+    public static PlayerInfo read_player_info() {
+        byte[] buf = new byte[30];
+
+        // read the message
+        String answer = "";
+        try {
+            int res = Client.tcp_socket_reader.read(buf, 0 , 30);
+            answer = new String(buf);
+
+            if (res != 30) {
+                Client.logIncorrectLengthMessage("GPLYR", 30, res);
+            } else if (!answer.startsWith("GPLYR")) {
+                Client.logIncorrectHeader("GPLYR", answer);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // extract the info
+        String id = answer.substring(6, 14);
+        int x = Integer.parseInt(answer.substring(15, 18));
+        int y = Integer.parseInt(answer.substring(19, 22));
+        int score = Integer.parseInt(answer.substring(23, 27));
+
+        return new PlayerInfo(id, x, y, score);
     }
 
 }

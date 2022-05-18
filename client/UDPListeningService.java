@@ -1,4 +1,3 @@
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
@@ -89,7 +88,7 @@ public class UDPListeningService implements Runnable {
         if (GameLogic.this_player.id.equals(playerID)) {
             GameLogic.this_player.score = new_score;
         } else {
-            for (GameLogic.PlayerInfo p : GameLogic.players) {
+            for (PlayerInfo p : GameLogic.players) {
                 if (p.id.equals(playerID)) {
                     p.score = new_score;
                 }
@@ -175,21 +174,16 @@ public class UDPListeningService implements Runnable {
         String context = general?"general":"personal";
         Client.LOGGER.info(String.format("Player %s sent %s message %s", sender_id, context, message_received));
 
-        GameLogic.PlayerInfo sender = null;
+        PlayerInfo sender = null;
         for (int i = 0; i<4; i++) {
             if (GameLogic.players[i].id.equals(sender_id)) {
                 sender = GameLogic.players[i];
             }
         }
 
-        // only update the UI if the sender is not the current player
-        if (sender != GameLogic.this_player) {
-            // TODO : update the UI
-        }
-
-        // if the sender is the current player, the UI is updated
-        // in the GamePanel, before sending the first SEND? or MALL?
-        // message
+        // TODO update the UI
+        // (even if the sender is the current user !)
+        // the ui is not updated anywhere else
     }
 
 }
