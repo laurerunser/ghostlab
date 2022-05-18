@@ -443,7 +443,7 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     // this method MUST be used inside of a mutex !!
 
     games[game_id].players[player_index].is_a_player = true;
-    memmove(games[game_id].players[0].id, &buf[7], 8); // id starts at position 7
+    memmove(games[game_id].players[0].id, &buf[6], 8); // id starts at position 6
     games[game_id].players[player_index].tcp_socket = sock_fd;
 
     // get player's udp port and put it in the address -> will be used to send UDP messages
