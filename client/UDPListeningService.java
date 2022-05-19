@@ -1,18 +1,23 @@
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 
 public class UDPListeningService implements Runnable {
     public String ip;
     public int port;
-
-    DatagramSocket dso;
+    MulticastSocket mso;
 
     public UDPListeningService(String multicast_ip, int multicast_port) {
         this.ip = multicast_ip;
         this.port = multicast_port;
 
         try {
-            dso = new DatagramSocket(port);
+            // make the socket
+            mso = new MulticastSocket(port);
+
+            // join the group
+            mso.joinGroup(InetAddress.getByName(multicast_ip));
         } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -45,7 +50,7 @@ public class UDPListeningService implements Runnable {
         try {
             byte[] data = new byte[5];
             DatagramPacket paquet = new DatagramPacket(data, data.length);
-            dso.receive(paquet);
+            mso.receive(paquet);
             if (paquet.getLength() != 5) {
                 Client.logIncorrectLengthMessage("a UDP header", 5, paquet.getLength());
             }
@@ -65,7 +70,7 @@ public class UDPListeningService implements Runnable {
         String message = "";
         try {
             DatagramPacket paquet = new DatagramPacket(data, data.length);
-            dso.receive(paquet);
+            mso.receive(paquet);
             if (paquet.getLength() != 27) {
                 Client.logIncorrectLengthMessage("SCORE", 27, paquet.getLength());
             }
@@ -104,7 +109,7 @@ public class UDPListeningService implements Runnable {
         String message = "";
         try {
             DatagramPacket paquet = new DatagramPacket(data, data.length);
-            dso.receive(paquet);
+            mso.receive(paquet);
             if (paquet.getLength() != 11) {
                 Client.logIncorrectLengthMessage("GHOST", 11, paquet.getLength());
             }
@@ -129,7 +134,7 @@ public class UDPListeningService implements Runnable {
         String message = "";
         try {
             DatagramPacket paquet = new DatagramPacket(data, data.length);
-            dso.receive(paquet);
+            mso.receive(paquet);
             if (paquet.getLength() != 17) {
                 Client.logIncorrectLengthMessage("ENDGA", 17, paquet.getLength());
             }
@@ -158,7 +163,7 @@ public class UDPListeningService implements Runnable {
         String message = "";
         try {
             DatagramPacket paquet = new DatagramPacket(data, data.length);
-            dso.receive(paquet);
+            mso.receive(paquet);
             // not checking how many bytes were received because
             // we don't know how big the message really is (only that it is max 200 chars)
             message = new String(paquet.getData(), 0, paquet.getLength());
