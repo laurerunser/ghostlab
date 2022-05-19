@@ -245,7 +245,7 @@ public class PregameLogic {
     /**
      * Sends the [START...] message to the server
      */
-    public static void sendStart() throws IOException, IncorrectMessageException {
+    public static void sendStart() throws IOException, IncorrectMessageException, InterruptedException {
         byte[] message = "START***".getBytes(StandardCharsets.UTF_8);
         Client.tcp_socket_writer.write(message);
         Client.tcp_socket_writer.flush();

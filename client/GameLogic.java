@@ -17,7 +17,9 @@ public class GameLogic {
     public static PlayerInfo[] players;
     public static PlayerInfo this_player;
 
-    public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException {
+    public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException, InterruptedException {
+        make_udp_threads();
+
         // receive WELCO
         byte[] welco = new byte[39];
         int res = Client.tcp_socket_reader.read(welco, 0, 39);
@@ -72,6 +74,17 @@ public class GameLogic {
         }
     }
 
+    public static void make_udp_threads() throws InterruptedException {
+        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, Integer.parseInt(broadcast_port));
+        MulticastListeningService multicast_service = new MulticastListeningService(broadcast_ip,
+                Integer.parseInt(broadcast_port), udp_service);
+
+        Thread t = new Thread(udp_service);
+        Thread t2 = new Thread(multicast_service);
+
+        t.join();
+        t2.join();
+    }
 
     //********************
     // MOVEMENTS
