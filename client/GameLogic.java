@@ -17,7 +17,6 @@ public class GameLogic {
     public static PlayerInfo[] players;
     public static PlayerInfo this_player;
 
-
     public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException {
         // receive WELCO
         byte[] welco = new byte[39];
