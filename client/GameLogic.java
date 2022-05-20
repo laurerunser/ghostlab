@@ -53,7 +53,7 @@ public class GameLogic {
         if (res != 25) {
             Client.logIncorrectLengthMessage("POSIT", 25, res);
         }
-        String posit_str = Arrays.toString(posit);
+        String posit_str = new String(posit);
         if (!posit_str.startsWith("POSIT")) {
             Client.logIncorrectHeader("POSIT", posit_str);
         }
@@ -165,7 +165,7 @@ public class GameLogic {
             Client.logIncorrectLengthMessage("MOVE! or MOVEF", 5, res);
         }
 
-        String header_str = Arrays.toString(header);
+        String header_str = new String(header);
 
         if (header_str.equals("MOVE!")) {
             read_new_coordinates();
@@ -186,7 +186,7 @@ public class GameLogic {
         if (res != 11) {
             Client.logIncorrectLengthMessage("MOVE! or MOVEF", 11, res);
         }
-        String message = Arrays.toString(rest_of_message);
+        String message = new String(rest_of_message);
 
         this_player.x = Integer.parseInt(message.substring(1, 4));
         this_player.y = Integer.parseInt(message.substring(5, 8));
