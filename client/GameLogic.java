@@ -39,7 +39,7 @@ public class GameLogic {
         width = Client.getIntFromLittleEndian(welco, 12);
         nb_ghosts = Client.getShortFromByte(welco[13]);
         nb_ghosts_left = nb_ghosts;
-        broadcast_ip = welco_str.substring(17, 32);
+        broadcast_ip = welco_str.substring(15, 30);
         broadcast_port = Integer.parseInt(welco_str.substring(31, 35));
 
         Client.LOGGER.info(String.format("Received WELCO message : broadcast ip : %s, broadcast port : %d" +
