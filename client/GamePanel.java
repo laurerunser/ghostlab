@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.util.LinkedList;
 
 public class GamePanel extends JPanel {
     public JPanel grid;
@@ -14,6 +15,108 @@ public class GamePanel extends JPanel {
     public int current_x;
     public int current_y;
 
+
+    public ChatGroup group_chat;
+    public ChatPannel perso_chat;
+
+    public class ChatPannel extends JPanel{
+        static ChatFrame [] chats;
+
+        public class ChatFrame extends JPanel {
+            LinkedList <JLabel> pannel;
+            String pseudo;
+            JButton sendButton = new JButton("SEND");
+            JTextField txtField = new JTextField(200);
+
+
+            public ChatFrame(String pseudo){
+
+                this.pseudo=pseudo;
+                sendButton.addActionListener(e->{
+                    String message = txtField.getText();
+                    GameLogic.send_personal_message(message ,pseudo);
+                    afficheMessage("Me:",message );
+                });
+                for (JLabel pan : pannel) {
+                    this.add(pan);
+                }
+                this.add(txtField);
+                this.add(sendButton);
+            }
+
+            public void afficheMessage (String id, String message){
+                pannel.add(new JLabel(id + " : " + message));
+                this.updateUI();
+            }
+
+        }
+
+        public ChatPannel(){
+            this.setLayout(new BorderLayout());
+            chats = new ChatFrame [GameLogic.players.length];
+            for (int i=0; i < GameLogic.players.length; i++){
+                String name = GameLogic.players[i].id;
+                JButton privChat = new JButton(name);
+                privChat.addActionListener( e -> { 
+                    getFrame(name).setVisible(true);
+                });
+            }            
+        }
+
+        //Obtenir le Frame liée au joueur
+        public static ChatFrame getFrame (String id){
+            for (int i=0; i < chats.length; i++){
+                if (id.equals(chats[i].pseudo)){
+                    return chats[i];     
+                }
+            }
+            return null;
+        }
+
+        public void recv(String message_received, String sender_id) {
+            getFrame(sender_id).afficheMessage(sender_id, message_received);
+        
+        }
+    }
+
+    public class ChatGroup extends JPanel{
+
+        LinkedList <JLabel> pannel;
+        JButton sendButton = new JButton("SEND");
+        JTextField txtField = new JTextField(200);
+
+        public ChatGroup(){
+
+            sendButton.addActionListener(e->{
+                String message = txtField.getText();
+                GameLogic.send_general_message(message);
+                afficheMessage("Me:",message );
+            });
+            for (JLabel pan : pannel) {
+                this.add(pan);
+            }
+            this.add(txtField);
+            this.add(sendButton);
+        }
+
+        public void afficheMessage (String id, String message){
+            pannel.add(new JLabel(id + " : " + message));
+            this.updateUI();
+        }
+    }
+
+
+    //Update UI when receive a private message
+    public void recvUDPUpdate(String message_received, String sender_id) {
+        perso_chat.recv(message_received, sender_id);
+    }
+
+    //Update UI when receive a group message
+    public void recvMulticastUpdate(String message_received, String sender_id) {
+        group_chat.afficheMessage(message_received, sender_id);
+    }
+
+
     public GamePanel(int width, int height, int x, int y) {
         this.width = width;
         this.height = height;
@@ -25,6 +128,11 @@ public class GamePanel extends JPanel {
         // add the playing grid
         make_grid(width, height);
         this.add(grid, CENTER_ALIGNMENT);
+        this.group_chat = new ChatGroup();
+        this.perso_chat = new ChatPannel();
+        this.add(perso_chat,LEFT_ALIGNMENT );
+        this.add(group_chat, RIGHT_ALIGNMENT);
+
 
         // add controls and score, nb of ghosts and quit buttons
         add_top_info();
@@ -262,4 +370,5 @@ public class GamePanel extends JPanel {
 
         dialog.setVisible(true);
     }
+
 }

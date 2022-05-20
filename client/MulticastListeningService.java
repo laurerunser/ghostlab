@@ -204,6 +204,7 @@ public class MulticastListeningService implements Runnable {
         // TODO update the UI
         // (even if the sender is the current user !)
         // the ui is not updated anywhere else
+        gamePanel.recvMulticastUpdate(message_received, sender_id);
     }
 
 }
