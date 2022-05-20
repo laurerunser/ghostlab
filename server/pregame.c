@@ -352,6 +352,7 @@ player_data create_new_game(int sock_fd, char *buf, struct sockaddr_in *client_a
     games[game_id].is_created = true;
     games[game_id].has_started = false;
     games[game_id].nb_ghosts_left = 4;
+    games[game_id].nb_players = 0;
 
     // create the multicast socket
     games[game_id].multicast_socket = create_UDP_socket();
@@ -387,8 +388,7 @@ player_data create_new_game(int sock_fd, char *buf, struct sockaddr_in *client_a
     return current_player;
 }
 
-player_data
-register_player(int sock_fd, int game_id, char *buf, struct sockaddr_in *client_address, player_data current_player) {
+player_data register_player(int sock_fd, int game_id, char *buf, struct sockaddr_in *client_address, player_data current_player) {
     // check if player is already registered in a game
     if (current_player.game_number != -1) {
         send_all(sock_fd, "REGNO***", 8);
@@ -447,8 +447,7 @@ register_player(int sock_fd, int game_id, char *buf, struct sockaddr_in *client_
     return current_player;
 }
 
-player_data
-add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address) {
+player_data add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address) {
     // this method MUST be used inside of a mutex !!
 
     games[game_id].players[player_index].is_a_player = true;

@@ -329,17 +329,16 @@ void player_quits(player_data *this_player) {
 void send_list_of_players_for_game(player_data *this_player) {
     char player_ids[4][8];
     bool is_a_player[4];
-    int nb_players = game->nb_players;
 
     // get the info with a mutex first,
     // then make the messages and send without the mutex
     // to spend the less time possible inside the mutex
     pthread_mutex_lock(&mutex);
+    int nb_players = game->nb_players;
     for (int i = 0; i < 4; i++) {
         if (games[this_player->game_number].players[i].is_a_player) {
             memmove(player_ids[i], games[this_player->game_number].players[i].id, 8);
             is_a_player[i] = true;
-            nb_players += 1;
         } else {
             is_a_player[i] = false;
         }

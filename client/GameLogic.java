@@ -368,6 +368,7 @@ public class GameLogic {
         int y = Integer.parseInt(answer.substring(19, 22));
         int score = Integer.parseInt(answer.substring(23, 27));
 
+        Client.LOGGER.info(String.format("Player info - id:%s, x:%d y:%d score:%d", id, x, y, score));
         return new PlayerInfo(id, x, y, score);
     }
 }
