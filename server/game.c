@@ -8,10 +8,6 @@ extern pthread_mutex_t mutex;
 // placeholder defined in pregame.c
 extern player_data placeholder_player;
 
-// the player this thread talks to + their socket
-player_data *this_player;
-int sock_fd_tcp;
-
 // the game we are using
 // !! Both the game and the maze MUST be protected by the
 // mutex !!
@@ -20,20 +16,19 @@ maze_data *maze;
 
 void *start_game(void *player) {
     // get the data into easily accessible structs
-    this_player = (player_data *) player;
-    sock_fd_tcp = this_player->tcp_socket;
+    player_data *this_player = (player_data *) player;
     game = &games[this_player->game_number];
     maze = game->maze;
 
     this_player->score = 0; // init the score
 
-    send_welcome_message();
-    send_initial_position();
+    send_welcome_message(this_player);
+    send_initial_position(this_player);
 
-    handle_game_requests();
+    handle_game_requests(this_player);
 
     // send [GOBYE] message to signal game has ended
-    send_all(sock_fd_tcp, "GOBYE***", 8);
+    send_all(this_player->tcp_socket, "GOBYE***", 8);
 
     // close the sockets (both TCP and UDP)
     close(this_player->tcp_socket);
@@ -46,7 +41,7 @@ void *start_game(void *player) {
     return NULL;
 }
 
-void handle_game_requests() {
+void handle_game_requests(player_data *this_player) {
     char buf[14]; // size of the [SEND?] message without the message part
     // we will use another buffer to get the 'mess' part of the [SEND?] and [MALL?] messages
 
@@ -54,50 +49,49 @@ void handle_game_requests() {
     // or if the player quit (this_player will be replaced with a placeholder)
     while (!game_has_ended() && this_player->is_a_player) {
         // receive header of message
-        long res = recv(sock_fd_tcp, buf, 5, 0);
+        long res = recv(this_player->tcp_socket, buf, 5, 0);
         if (!isRecvRightLength(res, 5, "Header of a game message")) {
             break;
         }
 
         // handle the message depending on the header
         if (strncmp("UPMOV", buf, 5) == 0) {
-            int steps = receive_move_message("UPMOV", buf);
-            move_vertical(steps, "UP", 1);
+            int steps = receive_move_message("UPMOV", buf, this_player);
+            move_vertical(steps, "UP", 1, this_player);
         } else if (strncmp("DOMOV", buf, 5) == 0) {
-            int steps = receive_move_message("DOMOV", buf);
-            move_vertical(steps, "DOWN", -1);
+            int steps = receive_move_message("DOMOV", buf, this_player);
+            move_vertical(steps, "DOWN", -1, this_player);
         } else if (strncmp("LEMOV", buf, 5) == 0) {
-            int steps = receive_move_message("LEMOV", buf);
-            move_horizontal(steps, "LEFT", -1);
+            int steps = receive_move_message("LEMOV", buf, this_player);
+            move_horizontal(steps, "LEFT", -1, this_player);
         } else if (strncmp("RIMOV", buf, 5) == 0) {
-            int steps = receive_move_message("RIMOV", buf);
-            move_horizontal(steps, "RIGHT", 1);
+            int steps = receive_move_message("RIMOV", buf, this_player);
+            move_horizontal(steps, "RIGHT", 1, this_player);
 
         } else if (strncmp("IQUIT", buf, 5) == 0) {
-            player_quits();
+            player_quits(this_player);
             // read end of message
-            res = recv(sock_fd_tcp, buf, 3, 0);
+            res = recv(this_player->tcp_socket, buf, 3, 0);
             if (!isRecvRightLength(res, 3, "IQUIT")) {
                 break; // ignore incomplete message
             }
         } else if (strncmp("GLIS?", buf, 5) == 0) {
-            send_list_of_players_for_game();
+            send_list_of_players_for_game(this_player);
             // read end of message
-            res = recv(sock_fd_tcp, buf, 3, 0);
+            res = recv(this_player->tcp_socket, buf, 3, 0);
             if (!isRecvRightLength(res, 3, "IQUIT")) {
                 break; // ignore incomplete message
             }
         } else if (strncmp("MALL?", buf, 5) == 0) {
-            send_message_to_all();
+            send_message_to_all(this_player);
         } else if (strncmp("SEND?", buf, 5) == 0) {
-            send_personal_message();
+            send_personal_message(this_player);
         }
     }
 }
 
 
-
-void send_welcome_message() {
+void send_welcome_message(player_data *this_player) {
     char welcome_msg[39];
     memmove(welcome_msg, "WELCO ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(welcome_msg + 6, &this_player->game_number, 1); // game number
@@ -124,12 +118,12 @@ void send_welcome_message() {
     sprintf(welcome_msg + 31, "%04d***", udp_port);
 
     // send the message
-    send_all(sock_fd_tcp, welcome_msg, 39);
+    send_all(this_player->tcp_socket, welcome_msg, 39);
     fprintf(stderr, "fd %d : Sent welcome message, player id=%s\n",
-            sock_fd_tcp, this_player->id);
+            this_player->tcp_socket, this_player->id);
 }
 
-void send_initial_position() {
+void send_initial_position(player_data *this_player) {
     char message[25];
     sprintf(message, "POSIT %s ", this_player->id);
 
@@ -148,17 +142,17 @@ void send_initial_position() {
     free(y_str);
 
     // send message
-    send_all(sock_fd_tcp, message, 25);
+    send_all(this_player->tcp_socket, message, 25);
     fprintf(stderr, "fd %d : x=%d y=%d, sent position message to player id = %s \n",
-            sock_fd_tcp, this_player->x, this_player->y, this_player->id);
+            this_player->tcp_socket, this_player->x, this_player->y, this_player->id);
 }
 
-int receive_move_message(char *context, char *buf) {
-    long res = recv(sock_fd_tcp, &buf[5], 7, 0);
+int receive_move_message(char *context, char *buf, player_data *this_player) {
+    long res = recv(this_player->tcp_socket, &buf[5], 7, 0);
     if (!isRecvRightLength(res, 7, context)) {
         return -1;
     }
-    fprintf(stderr, "fd %d : received %s message\n", sock_fd_tcp, context);
+    fprintf(stderr, "fd %d : received %s message\n", this_player->tcp_socket, context);
     char *ptr;
     int d = (int) strtol(&buf[6], &ptr, 10);
     if (ptr == NULL) {
@@ -172,7 +166,7 @@ int receive_move_message(char *context, char *buf) {
 
 // TODO refactor into one method
 // or at least refactor the bits that are the same
-void move_vertical(int steps, char *context, int direction) {
+void move_vertical(int steps, char *context, int direction, player_data *this_player) {
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
     for (int i = 0; i < steps; i++) {
@@ -191,11 +185,12 @@ void move_vertical(int steps, char *context, int direction) {
             maze->nb_ghosts -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
-            send_score_multicast();
+            send_score_multicast(this_player);
         } else { // wall or another player : blocked
-            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
+                    this_player->x, this_player->y);
             break;
         }
     }
@@ -203,17 +198,18 @@ void move_vertical(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, context,
+            this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
-        send_MOVEF();
+        send_MOVEF(this_player);
     } else {
-        send_MOVE();
+        send_MOVE(this_player);
     }
 }
 
-void move_horizontal(int steps, char *context, int direction) {
+void move_horizontal(int steps, char *context, int direction, player_data *this_player) {
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
     for (int i = 0; i < steps; i++) {
@@ -232,19 +228,20 @@ void move_horizontal(int steps, char *context, int direction) {
             game->nb_ghosts_left -= 1;
             // increase score
             this_player->score += 10;
-            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", sock_fd_tcp, this_player->x,
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
-            send_score_multicast();
+            send_score_multicast(this_player);
 
             // if this was the last ghost, this is the end of the game
             // this MUST be here (== at the capture of the ghost) and
             // not in the has_game_ended method because otherwise several
             // threads could send the message at the same time
             if (game->nb_ghosts_left == 0) {
-                send_endgame_multicast();
+                send_endgame_multicast(this_player);
             }
         } else { // wall or another player : blocked
-            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", sock_fd_tcp, this_player->x, this_player->y);
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
+                    this_player->x, this_player->y);
             break;
         }
     }
@@ -252,18 +249,19 @@ void move_horizontal(int steps, char *context, int direction) {
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", sock_fd_tcp, context, this_player->x, this_player->y);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, context,
+            this_player->x, this_player->y);
 
     // send message(s) with new position
     if (captured_a_ghost) {
-        send_MOVEF();
+        send_MOVEF(this_player);
     } else {
-        send_MOVE();
+        send_MOVE(this_player);
     }
 }
 
 
-void send_MOVEF() {
+void send_MOVEF(player_data *this_player) {
     // the SCORE multicast message is sent during the `move` function
     // because we need the exact coordinates at which the ghost was captured
 
@@ -284,11 +282,11 @@ void send_MOVEF() {
     free(score_with_stars);
 
     // send MOVEF message
-    send_all(sock_fd_tcp, mess, 21);
-    fprintf(stderr, "fd %d : Send MOVEF message\n", sock_fd_tcp);
+    send_all(this_player->tcp_socket, mess, 21);
+    fprintf(stderr, "fd %d : Send MOVEF message\n", this_player->tcp_socket);
 }
 
-void send_MOVE() {
+void send_MOVE(player_data *this_player) {
     char mess[17];
     char *x = int_to_3_bytes(this_player->x);
     char *y_with_stars = int_to_3_bytes_with_stars(this_player->y);
@@ -300,8 +298,8 @@ void send_MOVE() {
     free(x);
     free(y_with_stars);
 
-    send_all(sock_fd_tcp, mess, 16);
-    fprintf(stderr, "fd %d : Sent [MOVE!] message\n", sock_fd_tcp);
+    send_all(this_player->tcp_socket, mess, 16);
+    fprintf(stderr, "fd %d : Sent [MOVE!] message\n", this_player->tcp_socket);
 }
 
 bool game_has_ended() {
@@ -312,7 +310,7 @@ bool game_has_ended() {
     return res;
 }
 
-void player_quits() {
+void player_quits(player_data *this_player) {
     // remove the player from the game
     pthread_mutex_lock(&mutex);
     game->players[this_player->player_number] = placeholder_player;
@@ -328,7 +326,7 @@ void player_quits() {
     // The sockets are also closed there.
 }
 
-void send_list_of_players_for_game() {
+void send_list_of_players_for_game(player_data *this_player) {
     char player_ids[4][8];
     bool is_a_player[4];
     int nb_players = game->nb_players;
@@ -353,7 +351,7 @@ void send_list_of_players_for_game() {
     memmove(first_message, "GLIS! ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(first_message + 6, (uint8_t *) &nb_players, 1);
     memmove(first_message + 7, "***", 3); // NOLINT(bugprone-not-null-terminated-result)
-    send_all(sock_fd_tcp, first_message, 10);
+    send_all(this_player->tcp_socket, first_message, 10);
 
     // make and send the [GPLYR...] messages
     for (int i = 0; i < 4; i++) {
@@ -375,13 +373,13 @@ void send_list_of_players_for_game() {
             free(y);
             free(score_with_stars);
 
-            send_all(sock_fd_tcp, message, 31);
+            send_all(this_player->tcp_socket, message, 31);
         }
     }
-    fprintf(stderr, "fd %d : sent GLIS! and GPLYR messages\n", sock_fd_tcp);
+    fprintf(stderr, "fd %d : sent GLIS! and GPLYR messages\n", this_player->tcp_socket);
 }
 
-void send_score_multicast() {
+void send_score_multicast(player_data *this_player) {
     char mess[30];
     char *score = int_to_4_bytes(this_player->score);
     char *x = int_to_3_bytes(this_player->x);
@@ -395,7 +393,8 @@ void send_score_multicast() {
     struct sockaddr *their_addr;
     sendto(game->multicast_socket, mess, strlen(mess), 0,
            their_addr, (socklen_t) sizeof(struct sockaddr_in));
-    fprintf(stderr, "sent SCORE multicast message for player fd=%d, score=%d\n", sock_fd_tcp, this_player->score);
+    fprintf(stderr, "sent SCORE multicast message for player fd=%d, score=%d\n", this_player->tcp_socket,
+            this_player->score);
 }
 
 void send_endgame_multicast() {
@@ -422,31 +421,31 @@ void send_endgame_multicast() {
     fprintf(stderr, "Sent ENDGA message : player fd=%d won with score %d\n", best_player.tcp_socket, best_player.score);
 }
 
-void send_message_to_all() {
+void send_message_to_all(player_data *this_player) {
     // read the message and send the multicast
     struct sockaddr_in addr;
     inet_pton(AF_INET, MULTICAST_ADDR, &addr.sin_addr);
     long length_of_message = read_and_send_message(game->multicast_socket, addr,
-                                                   "MALL?", "MESSA", "MALL!");
+                                                   "MALL?", "MESSA", "MALL!", this_player);
 
     // recv the complete MALL? message
     char buf[length_of_message];
     long length_to_recv = length_of_message; // stars included in the length
-    long res = recv(sock_fd_tcp, buf, length_to_recv, 0);
+    long res = recv(this_player->tcp_socket, buf, length_to_recv, 0);
     isRecvRightLength(res, length_to_recv, "MALL?");
 }
 
-void send_personal_message() {
+void send_personal_message(player_data *this_player) {
     // read the recipient id (with the space before but not the space after)
     char id[10];
-    long res = recv(sock_fd_tcp, id, 9, 0);
+    long res = recv(this_player->tcp_socket, id, 9, 0);
     if (!isRecvRightLength(res, 9, "SEND?")) {
         return;
     }
 
     // check that the player is in that game
     player_data *recipient = NULL;
-    for (int i = 0; i<4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (game->players[i].is_a_player
             && strncmp(&id[1], game->players[i].id, 8) == 0) {
             recipient = &game->players[i];
@@ -455,38 +454,39 @@ void send_personal_message() {
     }
     // if player isn't in the game
     if (recipient == NULL) {
-        send_all(sock_fd_tcp, "NSEND***", 8);
+        send_all(this_player->tcp_socket, "NSEND***", 8);
         fprintf(stderr, "fd %d : Sent NSEND -> recipient id = %s is not in the game\n",
-                sock_fd_tcp, &id[1]);
+                this_player->tcp_socket, &id[1]);
         return;
     }
 
     // read the message and send the multicast
     long length_of_message = read_and_send_message(recipient->udp_socket, *recipient->address,
-                                                   "SEND?", "MESSP", "SEND!");
+                                                   "SEND?", "MESSP", "SEND!", this_player);
 
     // recv the complete SEND? message
     char buf[length_of_message]; // stars included in the length
     long length_to_recv = length_of_message;
-    res = recv(sock_fd_tcp, buf, length_to_recv, 0);
+    res = recv(this_player->tcp_socket, buf, length_to_recv, 0);
     isRecvRightLength(res, length_to_recv, "SEND?");
 }
 
-long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send, char *ack_to_send) {
+long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send,
+                           char *ack_to_send, player_data *this_player) {
     // read 204 bytes = max size of the message + 1 (space after header) + 3 (the stars)
     // with option MSG_PEEK == don't remove data from the stream
     // => at the end we do a recv of the exact size of the message
     //    so that only the right amount of bytes are taken from the buffer
     //    and there are no additional "cached" request
     char buf[205];
-    recv(sock_fd_tcp, buf, 204, MSG_PEEK);
+    recv(this_player->tcp_socket, buf, 204, MSG_PEEK);
     buf[204] = '\0'; // to treat it as a string
 
     // find where the message ends
     char *start_of_stars = strstr(buf, "***");
     if (start_of_stars == NULL) { // didn't find a "***" in the string
         fprintf(stderr, "Reading a [%s] message, can't find *** at the end for player fd = %d\n"
-                        "Ignoring the message\n", context, sock_fd_tcp);
+                        "Ignoring the message\n", context, this_player->tcp_socket);
         return -1;
     }
     // the length of the message to send is the difference between the beginning and the end pointers
@@ -505,13 +505,13 @@ long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *co
     // send multicast message;
     sendto(socketfd, complete_message, length_to_send, 0,
            (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
-    fprintf(stderr, "Sent %s message from player fd = %d\n", header_to_send, sock_fd_tcp);
+    fprintf(stderr, "Sent %s message from player fd = %d\n", header_to_send, this_player->tcp_socket);
 
     // send acknowledgement to initial sender
     char *ack;
     sprintf(ack, "%s***", ack_to_send);
-    send_all(sock_fd_tcp, ack, 8);
-    fprintf(stderr, "Sent %s acknowledgement to player fd=%d\n", ack_to_send, sock_fd_tcp);
+    send_all(this_player->tcp_socket, ack, 8);
+    fprintf(stderr, "Sent %s acknowledgement to player fd=%d\n", ack_to_send, this_player->tcp_socket);
 
     return lenght_of_message;
 }

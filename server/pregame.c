@@ -7,7 +7,6 @@ extern pthread_mutex_t mutex;
 
 // to remember which game the player is registered in
 // at beginning, game_number=-1 to signify this is a placeholder
-player_data current_player;
 player_data placeholder_player;
 
 // TODO if client recv == 0 -> client disconnected
@@ -28,11 +27,11 @@ void *handle_client_first_connection(void *args_p) {
     // at beginning of loop, current_player is a placeholder
     // game_number = -1 to say the player is not registered in a game
     placeholder_player.game_number = -1;
-    current_player = placeholder_player;
+    player_data current_player = placeholder_player;
 
     // wait for player's messages
     char buf[24]; // max size of messages is 24 (for REGIS)
-    while (!game_has_started()) {
+    while (!game_has_started(current_player)) {
         // receive header of message
         long res = recv(sock_fd, buf, 5, 0);
         if (!isRecvRightLength(res, 5, "Header of a pregame message")) {
@@ -48,23 +47,25 @@ void *handle_client_first_connection(void *args_p) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;            }
             fprintf(stderr, "fd %d : received NEWPL message\n", sock_fd);
-            create_new_game(sock_fd, buf, args->client_address);
+            current_player = create_new_game(sock_fd, buf, args->client_address, current_player);
         } else if (strncmp("REGIS", buf, 5) == 0) {
             res = recv(sock_fd,&buf[5], 20, 0);
             if (!isRecvRightLength(res, 20, "REGIS")) {
                 fprintf(stderr, "Ignoring incomplete message\n");
-                break;            }
+                break;
+            }
             uint8_t game_id = buf[21];
             fprintf(stderr, "fd %d : received REGIS message for game id = %d\n", sock_fd, game_id);
-            register_player(sock_fd, game_id, buf, args->client_address);
+            current_player = register_player(sock_fd, game_id, buf, args->client_address, current_player);
         } else if (strncmp("UNREG", buf, 5) == 0) {
             res = recv(sock_fd, &buf[5], 3, 0);
             if (!isRecvRightLength(res, 3, "UNREG")) {
                 fprintf(stderr, "Ignoring incomplete message\n");
                 break;
-             }
+            }
             fprintf(stderr, "fd %d : received UNREG message\n", sock_fd);
-            unregister_player(sock_fd);
+            unregister_player(sock_fd, current_player);
+            current_player = placeholder_player;
         } else if (strncmp("SIZE?", buf, 5) == 0) {
             res = recv(sock_fd, &buf[5], 5, 0);
             if (!isRecvRightLength(res, 5, "SIZE?")) {
@@ -98,7 +99,7 @@ void *handle_client_first_connection(void *args_p) {
                 break;
             }
             fprintf(stderr, "fd %d : received START message\n", sock_fd);
-            bool stop = handle_start_message(sock_fd);
+            bool stop = handle_start_message(sock_fd, current_player);
             // player has sent START and cannot send messages anymore for pregame stuff
             // this thread dies (returns NULL) and another one will be spun up
             // by the function that starts game (one new thread for each player)
@@ -239,8 +240,8 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
         // if it has too many players for the user to register
         // => a player can see the size of the maze of any game
         //    as long as it exists
-        uint16_t width = ntohs(games[game_id].maze->width);
-        uint16_t height = ntohs(games[game_id].maze->height);
+        uint16_t width = htole16(games[game_id].maze->width);
+        uint16_t height = htole16(games[game_id].maze->height);
         pthread_mutex_unlock(&mutex);
 
         char message[16];
@@ -257,7 +258,7 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
     }
 }
 
-bool handle_start_message(int sock_fd) {
+bool handle_start_message(int sock_fd, player_data current_player) {
     if (current_player.game_number == -1) { // if player is not registered, just ignore the START message
         fprintf(stderr, "fd %d : received START message "
                         "but player is not registered into a game\n", sock_fd);
@@ -273,10 +274,12 @@ bool handle_start_message(int sock_fd) {
     // check if the game is ready to start
     bool ready_to_start = true;
     if (games[current_player.game_number].nb_players < 4) {
+        fprintf(stdout, "not enough players\n");
         ready_to_start = false;
     }
     for (int i = 0; i < 4; i++) {
         if (!games[current_player.game_number].players[i].sent_start) {
+            fprintf(stdout, "player %d didn't send start\n", i);
             ready_to_start = false;
         }
     }
@@ -291,7 +294,7 @@ bool handle_start_message(int sock_fd) {
             pthread_create(&thread_id,
                            NULL,
                            start_game,
-                           (void *)&players[i]
+                           (void *) &players[i]
             );
         }
     }
@@ -299,7 +302,7 @@ bool handle_start_message(int sock_fd) {
     return true;
 }
 
-bool game_has_started() {
+bool game_has_started(player_data current_player) {
     if (current_player.game_number == -1) {
         return false;
     } else {
@@ -316,7 +319,7 @@ void send_regok_message(int sock_fd, int game_id) {
     send_all(sock_fd, message, 10);
 }
 
-void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address) {
+player_data create_new_game(int sock_fd, char *buf, struct sockaddr_in *client_address, player_data current_player) {
     // check if player is already registered
     if (current_player.game_number != -1) {
         char message[] = "REGNO***";
@@ -343,7 +346,7 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
         send_all(sock_fd, message, 8);
         fprintf(stderr, "fd %d : Sent [REGNO] -> tried to create a new game "
                         "but there is not space left\n", sock_fd);
-        return;
+        return placeholder_player;
     }
     // everything is ok, creating the game
     games[game_id].is_created = true;
@@ -374,22 +377,25 @@ void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address)
     }
 
     // add the first player
-    add_player_to_game(game_id, 0, buf, sock_fd, client_address);
+    current_player = add_player_to_game(game_id, 0, buf, sock_fd, client_address);
     pthread_mutex_unlock(&mutex);
 
     // send the message
     send_regok_message(sock_fd, game_id);
     fprintf(stderr, "fd %d : has created the game id = %d\n", sock_fd, game_id);
+
+    return current_player;
 }
 
-void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address) {
+player_data
+register_player(int sock_fd, int game_id, char *buf, struct sockaddr_in *client_address, player_data current_player) {
     // check if player is already registered in a game
     if (current_player.game_number != -1) {
         send_all(sock_fd, "REGNO***", 8);
         fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but they are already registered into game number %d\n",
                 sock_fd, game_id, current_player.game_number);
-        return;
+        return placeholder_player;
     }
 
     pthread_mutex_lock(&mutex);
@@ -400,7 +406,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
         fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but game doesn't exist\n",
                 sock_fd, game_id);
-        return;
+        return placeholder_player;
     }
 
     // check that game is not already started
@@ -409,7 +415,7 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
         fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but game has already started\n",
                 sock_fd, game_id);
-        return;
+        return placeholder_player;
     }
 
     // check if the game has a spot left
@@ -425,26 +431,30 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
         fprintf(stderr, "fd %d : Sent [REGNO] -> tried to register into game number %d "
                         "but there is no spot left\n",
                 sock_fd, game_id);
-        return;
+        return placeholder_player;
     }
 
     // everything is OK, adding player to the game
-    add_player_to_game(game_id, spot_left, buf, sock_fd, client_address);
+    current_player = add_player_to_game(game_id, spot_left, buf, sock_fd, client_address);
 
     pthread_mutex_unlock(&mutex);
 
     // send message
     send_regok_message(sock_fd, game_id);
-    fprintf(stderr,"fd %d : is registered into game number %d\n",
+    fprintf(stderr, "fd %d : is registered into game number %d\n",
             sock_fd, game_id);
+
+    return current_player;
 }
 
-void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address) {
+player_data
+add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address) {
     // this method MUST be used inside of a mutex !!
 
     games[game_id].players[player_index].is_a_player = true;
-    memmove(games[game_id].players[0].id, &buf[6], 8); // id starts at position 6
+    memmove(games[game_id].players[player_index].id, &buf[6], 8); // id starts at position 6
     games[game_id].players[player_index].tcp_socket = sock_fd;
+    games[game_id].players[player_index].player_number = player_index;
 
     // get player's udp port and put it in the address -> will be used to send UDP messages
     char udp_port[5];
@@ -457,14 +467,14 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     games[game_id].players[player_index].udp_socket = create_UDP_socket();
     games[game_id].players[player_index].address = client_address;
 
-    // update current_player
-    current_player = games[game_id].players[0];
-
     // update nb of players in the game
     games[game_id].nb_players += 1;
+
+    return games[game_id].players[player_index]; // return updated current player
+
 }
 
-void unregister_player(int sock_fd) {
+void unregister_player(int sock_fd, player_data current_player) {
     if (current_player.game_number == -1) { // player is not registered in a game
         send_all(sock_fd, "DUNNO***", 8);
         return;
@@ -475,9 +485,6 @@ void unregister_player(int sock_fd) {
     int game_id = current_player.game_number;
     games[game_id].players[current_player.player_number].is_a_player = false;
     pthread_mutex_unlock(&mutex);
-
-    // update current_player to the placeholder
-    current_player = placeholder_player;
 
     // send message
     char message[10];

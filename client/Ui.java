@@ -21,6 +21,7 @@ public class Ui extends JFrame {
 
     public void set_game_panel(GamePanel gamePanel) {
         principal = gamePanel;
+        principal.updateUI();
     }
 }
 
