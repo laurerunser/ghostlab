@@ -40,13 +40,13 @@ public class PregamePanel extends JPanel {
 
     public void addListOfGames(int[] nbPlayers) {
         this.listOfGames.removeAll();
-        listOfGames.setLayout(new GridLayout());
+        listOfGames.setLayout(new FlowLayout());
         for (int i = 0; i < nbPlayers.length; i++) {
             if (nbPlayers[i] >= 0) {
                 JButton bouton = new JButton("game " + i);
                 int j = i; // the variable in the listener below must be effectively final
                 bouton.addActionListener(e -> seeGameDetails(j));
-                listOfGames.add(bouton, i - 1);
+                listOfGames.add(bouton);
             }
         }
     }

@@ -1,27 +1,38 @@
 import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 
 
 public class Ui extends JFrame {
-    JPanel principal = new JPanel();
+    JPanel rootPanel;
 
     public Ui () throws IOException, IncorrectMessageException {
         this.setTitle("Gostlab");
         this.setSize(600, 600);
         this.setResizable(false);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
-        this.add(principal);
 
         // add the pregame UI
+
+        rootPanel = new JPanel(new CardLayout());
         JPanel pregamePanel = new PregamePanel();
         BoxLayout boxlayout = new BoxLayout(pregamePanel, BoxLayout.Y_AXIS);
         pregamePanel.setLayout(boxlayout);
-        principal.add(pregamePanel);
+
+        rootPanel.add(pregamePanel, "pregame");
+
+        CardLayout cards = (CardLayout) rootPanel.getLayout();
+        cards.show(rootPanel, "pregame");
+
+
+        this.add(rootPanel);
     }
 
     public void set_game_panel(GamePanel gamePanel) {
-        principal = gamePanel;
-        principal.updateUI();
+        rootPanel.add(gamePanel, "game");
+
+        CardLayout cards = (CardLayout) rootPanel.getLayout();
+        cards.show(rootPanel, "game");
     }
 
     public static void timeout() {
