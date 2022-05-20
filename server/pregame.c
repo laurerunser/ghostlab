@@ -448,7 +448,7 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     memmove(games[game_id].players[player_index].id, &buf[6], 8); // id starts at position 6
     games[game_id].players[player_index].tcp_socket = sock_fd;
     games[game_id].players[player_index].player_number = player_index;
-    
+
     // get player's udp port and put it in the address -> will be used to send UDP messages
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);

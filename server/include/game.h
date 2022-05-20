@@ -8,11 +8,13 @@
 
 #define BROADCAST_IP "255.255.255.255"
 
-void send_welcome_message();
-void send_initial_position();
+void send_welcome_message(player_data *this_player);
+
+void send_initial_position(player_data *this_player);
 
 void *start_game(void *player);
-void handle_game_requests();
+
+void handle_game_requests(player_data *this_player);
 
 bool game_has_ended();
 
@@ -25,29 +27,32 @@ bool game_has_ended();
  * - the number cannot be parsed from the string
  * In case of error, returns -1
  */
-int receive_move_message(char *context, char *buf);
+int receive_move_message(char *context, char *buf, player_data *this_player);
 
 /*
  * steps : the max number of steps to take
  * context : "UP" or "DOWN" // "LEFT" or "RIGHT"
  * direction : 1 to go up/right, -1 to go down/left
  */
-void move_vertical(int steps, char* context, int direction);
-void move_horizontal(int steps, char* context, int direction);
+void move_vertical(int steps, char *context, int direction, player_data *this_player);
 
-void compare_header(char *);
+void move_horizontal(int steps, char *context, int direction, player_data *this_player);
 
-void send_MOVEF();
-void send_MOVE();
+void send_MOVEF(player_data *this_player);
 
-void player_quits();
+void send_MOVE(player_data *this_player);
 
-void send_list_of_players_for_game();
+void player_quits(player_data *this_player);
 
-void send_score_multicast();
+void send_list_of_players_for_game(player_data *this_player);
+
+void send_score_multicast(player_data *this_player);
+
 void send_endgame_multicast();
-void send_message_to_all();
-void send_personal_message();
+
+void send_message_to_all(player_data *this_player);
+
+void send_personal_message(player_data *this_player);
 
 /*
  * Returns the length of the message that was read (with the *** at the end)
@@ -55,4 +60,5 @@ void send_personal_message();
  * header_to_send : "MESSA" or "MESSP" -> multicast header
  * ack : "MALL!" or "SEND!" -> TCP acknowledgement header
  */
-long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send, char *ack_to_send);
+long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *context, char *header_to_send,
+                           char *ack_to_send, player_data *this_player);

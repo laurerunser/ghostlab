@@ -28,7 +28,7 @@ public class GameLogic {
         if (res != 39) {
             Client.logIncorrectLengthMessage("WELCO", 39, res);
         }
-        String welco_str = Arrays.toString(welco);
+        String welco_str = new String(welco);
         if (!welco_str.startsWith("WELCO")) {
             Client.logIncorrectHeader("WELCO", welco_str);
         }
