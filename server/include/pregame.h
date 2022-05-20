@@ -30,18 +30,19 @@ void send_size_of_maze(int sock_fd, uint8_t game_id);
 // if so, changes the player's status, and checks to see if the game should start (and then starts it)
 // otherwise, ignores the message
 // Returns true if the START message is accepted, false if it is ignored
-bool handle_start_message(int sock_fd);
+bool handle_start_message(int sock_fd, player_data current_player);
 
 // returns true if the game the player is registered in has started
-bool game_has_started();
+bool game_has_started(player_data current_player);
 
 // tries to create a new game and register the player in it.
 // Sends the [REGOK...] or [REGNO...] message
-void create_new_game(int sock_fd, char *buf, struct sockaddr_in* client_address);
+player_data create_new_game(int sock_fd, char *buf, struct sockaddr_in *client_address, player_data current_player);
 
 // registers a player into a game that already exists
 // Sends the [REGOK...] or [REGNO...] message
-void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* client_address);
+player_data
+register_player(int sock_fd, int game_id, char *buf, struct sockaddr_in *client_address, player_data current_player);
 
 /*
  * Adds a player to a game.
@@ -52,9 +53,10 @@ void register_player(int sock_fd, int game_id, char* buf, struct sockaddr_in* cl
  * - sock_fd : the tcp socket of the player
  * - client_address : the address of the player
  */
-void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address);
+player_data
+add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, struct sockaddr_in *client_address);
 
 // unregisters the player from the game
 // Sends [UNROK...] or [DUNNO...] messages
-void unregister_player(int sock_fd);
+void unregister_player(int sock_fd, player_data current_player);
 #endif //GHOSTLAB_PREGAME_H
