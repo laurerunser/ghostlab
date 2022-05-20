@@ -7,9 +7,8 @@ public class Ui extends JFrame {
     JPanel rootPanel;
 
     public Ui () throws IOException, IncorrectMessageException {
-        this.setTitle("Gostlab");
+        this.setTitle("Ghostlab");
         this.setSize(600, 600);
-        this.setResizable(false);
         this.setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         // add the pregame UI

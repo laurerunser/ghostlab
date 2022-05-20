@@ -46,7 +46,7 @@ public class UDPListeningService implements Runnable{
         // not checking how many bytes were received because
         // we don't know how big the message really is (only that it is max 200 chars)
         message = new String(paquet.getData(), 0, paquet.getLength());
-        
+
 
         String sender_id = message.substring(1, 9);
         String message_received = message.substring(10, message.length()-4);
@@ -54,8 +54,6 @@ public class UDPListeningService implements Runnable{
 
         Client.LOGGER.info(String.format("Player %s sent personal message %s", sender_id, message_received));
 
-        gamePanel.recvUDPUpdate(message_received, sender_id);
-        // (even if the sender is the current user !)
-        // the ui is not updated anywhere else
+        gamePanel.perso_chat.add_message_to_panel(message_received, sender_id);
     }
 }

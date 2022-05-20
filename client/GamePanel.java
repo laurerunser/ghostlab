@@ -1,7 +1,6 @@
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.util.LinkedList;
 
 public class GamePanel extends JPanel {
     public JPanel grid;
@@ -16,19 +15,8 @@ public class GamePanel extends JPanel {
     public int current_y;
 
 
-    public ChatGroup group_chat;
-    public ChatPannel perso_chat;
-
-    //Update UI when receive a private message
-    public void recvUDPUpdate(String message_received, String sender_id) {
-        perso_chat.recv(message_received, sender_id);
-    }
-
-    //Update UI when receive a group message
-    public void recvMulticastUpdate(String message_received, String sender_id) {
-        group_chat.afficheMessage(message_received, sender_id);
-    }
-
+    public GeneralChat group_chat;
+    public PersonalChat perso_chat;
 
     public GamePanel(int width, int height, int x, int y) {
         this.width = width;
@@ -39,25 +27,30 @@ public class GamePanel extends JPanel {
         this.setLayout(new BorderLayout());
 
         // add the playing grid
-        make_grid(width, height);
+        grid = make_grid(width, height);
         this.add(grid, BorderLayout.CENTER);
-        this.group_chat = new ChatGroup();
-        this.perso_chat = new ChatPannel();
-        this.add(perso_chat, BorderLayout.WEST);
-        this.add(group_chat, BorderLayout.EAST);
-
 
         // add controls and score, nb of ghosts and quit buttons
         add_top_info();
+
+        // add the chats (general on the left, personal on the right)
+        this.group_chat = new GeneralChat();
+        this.add(group_chat, BorderLayout.WEST);
+
+        this.perso_chat = new PersonalChat();
+        this.add(perso_chat, BorderLayout.EAST);
     }
 
-    public void make_grid(int width, int height) {
+    public JPanel make_grid(int width, int height) {
+        JLabel la = new JLabel("grid");
+        this.add(la);
+
         // the grid is made of JButtons, without any listeners -> they can't be clicked
         // but this is an easy way of making a grid
         grid = new JPanel(new GridLayout(width, height));
 
-        for (int i = 0; i<width; i++) {
-            for (int j = 0; j<height; j++) {
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
                 if (i == current_x && j == current_y) { // place current player (in blue)
                     JButton player = new JButton();
                     player.setBorder(new LineBorder(Color.BLACK));
@@ -71,6 +64,7 @@ public class GamePanel extends JPanel {
                 }
             }
         }
+        return grid;
     }
 
     public void add_top_info() {
