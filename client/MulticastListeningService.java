@@ -108,10 +108,10 @@ public class MulticastListeningService implements Runnable {
         }
         GameLogic.nb_ghosts_left--;
 
+        // update the ui
         gamePanel.update_score(new_score);
         gamePanel.update_nb_ghosts();
-
-        // TODO : launch an animation that shows the ghost dying in its coordinates
+        gamePanel.ghost_dies(ghost_x, ghost_y);
     }
 
     public void updateGhostPosition() {

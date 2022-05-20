@@ -41,10 +41,10 @@ public class GamePanel extends JPanel {
 
         for (int i = 0; i<width; i++) {
             for (int j = 0; j<height; j++) {
-                if (i == current_x && j == current_y) { // place current player (in green)
+                if (i == current_x && j == current_y) { // place current player (in blue)
                     JButton player = new JButton();
                     player.setBorder(new LineBorder(Color.BLACK));
-                    player.setBackground(Color.GREEN);
+                    player.setBackground(Color.BLUE);
                     grid.add(player, i, j);
                 } else { // place grey block
                     JButton block = new JButton();
@@ -85,10 +85,35 @@ public class GamePanel extends JPanel {
      * change the color of the block from light_gray to yellow
      * then wait 0.5 second
      * then change the color back to light_gray
+     * @param x ghost x coordinate
+     * @param y ghost y coordinate
      */
     public void show_ghost(int x, int y) {
         JButton ghost = (JButton)grid.getComponentAt(x, y);
         ghost.setBackground(Color.YELLOW);
+        try {
+            wait(50);
+        } catch (Exception e) {
+            // do nothing
+        }
+        ghost.setBackground(Color.LIGHT_GRAY);
+    }
+
+
+    /**
+     * Shows a ghost dying: goes from yellow to red (then back to normal light gray)
+     * @param x ghost x coordinate
+     * @param y ghost y coordinate
+     */
+    public void ghost_dies(int x, int y) {
+        JButton ghost = (JButton)grid.getComponentAt(x, y);
+        ghost.setBackground(Color.YELLOW);
+        try {
+            wait(50);
+        } catch (Exception e) {
+            // do nothing
+        }
+        ghost.setBackground(Color.RED);
         try {
             wait(50);
         } catch (Exception e) {
