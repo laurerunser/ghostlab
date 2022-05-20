@@ -56,6 +56,8 @@ public class UDPListeningService implements Runnable{
         }
 
         // TODO update the UI
+        
+        gamePanel.recvUDPUpdate(message_received, sender_id);
         // (even if the sender is the current user !)
         // the ui is not updated anywhere else
     }
