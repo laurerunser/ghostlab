@@ -1,3 +1,7 @@
+import java.util.LinkedList;
+
+import javax.swing.*;
+
 public class ChatGroup extends JPanel{
 
         LinkedList <JLabel> pannel;

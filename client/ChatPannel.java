@@ -1,3 +1,7 @@
+import java.util.LinkedList;
+import java.awt.*;
+import javax.swing.*;
+
 public class ChatPannel extends JPanel{
         ChatFrame [] chats;
 
