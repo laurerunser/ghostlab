@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -106,6 +107,8 @@ public class PregameLogic {
         try {
             Client.tcp_socket_writer.write(message);
             Client.tcp_socket_writer.flush();
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -116,6 +119,8 @@ public class PregameLogic {
         int res = 0;
         try {
             res = receiveREGOKorREGNO();
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);

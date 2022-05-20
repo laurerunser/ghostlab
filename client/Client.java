@@ -26,11 +26,16 @@ public class Client {
         try {
             InetAddress serveur = InetAddress.getByName(serverName);
             tcpSocket = new Socket(serveur, serverTCPPort);
+            tcpSocket.setSoTimeout(30000);
+
 
             tcp_socket_reader = new DataInputStream(tcpSocket.getInputStream());
             tcp_socket_writer = new DataOutputStream(tcpSocket.getOutputStream());
 
-        } catch (Exception e) {
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
+
+        }catch (Exception e) {
             e.printStackTrace();
             LOGGER.warning("Can't connect to server\n");
             System.exit(1);
@@ -43,6 +48,9 @@ public class Client {
                     ui = null;
                     try {
                         ui = new Ui();
+                    }catch (SocketTimeoutException e){
+                        Ui.timeout();
+            
                     } catch (Exception e) {
                         e.printStackTrace();
                         System.exit(0);

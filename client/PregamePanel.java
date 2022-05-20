@@ -3,6 +3,7 @@ import javax.swing.border.TitledBorder;
 
 import java.awt.*;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 
 
 public class PregamePanel extends JPanel {
@@ -56,6 +57,8 @@ public class PregamePanel extends JPanel {
             int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
             addListOfGames(nbPlayers);
             listOfGames.updateUI();
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -70,7 +73,8 @@ public class PregamePanel extends JPanel {
         try {
             // get the list of players and make a panel for them
             playersID = PregameLogic.getPlayersForGame((short) gameId);
-
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
             System.exit(1);
@@ -150,6 +154,9 @@ public class PregamePanel extends JPanel {
         int res = -1;
         try {
             res = PregameLogic.registerToGame((short) gameId, verifPseudo(playerId));
+        
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (IOException | IncorrectMessageException e) {
             e.printStackTrace();
         }
@@ -170,6 +177,8 @@ public class PregamePanel extends JPanel {
         if (isGameSelected) {
             try {
                 PregameLogic.sendStart();
+            }catch (SocketTimeoutException e){
+                Ui.timeout();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -184,6 +193,8 @@ public class PregamePanel extends JPanel {
             boolean res = false;
             try {
                 res = PregameLogic.unregisterFromGame();
+            } catch (SocketTimeoutException e){
+                Ui.timeout();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -236,6 +247,8 @@ public class PregamePanel extends JPanel {
         int[] size = null;
         try {
             size = PregameLogic.getMazeSizeForGame((short) gameID);
+        }catch (SocketTimeoutException e){
+            Ui.timeout();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
