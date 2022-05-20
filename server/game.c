@@ -110,7 +110,7 @@ void send_welcome_message(player_data *this_player) {
     pthread_mutex_unlock(&mutex);
 
     // BROADCAST_IP is defined in the game.h header file
-    memmove(welcome_msg + 15, BROADCAST_IP, 15); // NOLINT(bugprone-not-null-terminated-result)
+    memmove(welcome_msg + 15, MULTICAST_ADDR, 15); // NOLINT(bugprone-not-null-terminated-result)
     memmove(welcome_msg + 30, " ", 1); // NOLINT(bugprone-not-null-terminated-result)
 
     // the UDP port is 4444 + id_of_the_game

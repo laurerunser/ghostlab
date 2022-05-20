@@ -34,10 +34,10 @@ public class GameLogic {
         }
 
         // extract the info
-        game_id = Client.getShortFromByte(welco[7]);
-        height = Client.getIntFromLittleEndian(welco, 9);
-        width = Client.getIntFromLittleEndian(welco, 12);
-        nb_ghosts = Client.getShortFromByte(welco[13]);
+        game_id = Client.getShortFromByte(welco[6]);
+        height = Client.getIntFromLittleEndian(welco, 8);
+        width = Client.getIntFromLittleEndian(welco, 11);
+        nb_ghosts = Client.getShortFromByte(welco[14]);
         nb_ghosts_left = nb_ghosts;
         broadcast_ip = welco_str.substring(15, 30);
         broadcast_port = Integer.parseInt(welco_str.substring(31, 35));
@@ -59,8 +59,8 @@ public class GameLogic {
         }
 
         // extract the info
-        String x_str = posit_str.substring(16, 19);
-        String y_str = posit_str.substring(20, 23);
+        String x_str = posit_str.substring(15, 18);
+        String y_str = posit_str.substring(19, 22);
         int x = Integer.parseInt(x_str);
         int y = Integer.parseInt(y_str);
 
@@ -344,16 +344,16 @@ public class GameLogic {
     }
 
     public static PlayerInfo read_player_info() {
-        byte[] buf = new byte[30];
+        byte[] buf = new byte[31];
 
         // read the message
         String answer = "";
         try {
-            int res = Client.tcp_socket_reader.read(buf, 0 , 30);
+            int res = Client.tcp_socket_reader.read(buf, 0, 31);
             answer = new String(buf);
 
             if (res != 30) {
-                Client.logIncorrectLengthMessage("GPLYR", 30, res);
+                Client.logIncorrectLengthMessage("GPLYR", 31, res);
             } else if (!answer.startsWith("GPLYR")) {
                 Client.logIncorrectHeader("GPLYR", answer);
             }

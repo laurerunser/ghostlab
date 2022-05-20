@@ -21,7 +21,7 @@
 
 #define TCP_PORT "3490" // the port users will be connecting to
 #define BACKLOG 0 // how many pending connections queue will hold; 0 for system default
-#define MULTICAST_ADDR "224.0.0.3"
+#define MULTICAST_ADDR "224.000.000.003"
 
 /* Sends a TCP message. Makes sure all the message is sent through,
  * even if the message is very big.
