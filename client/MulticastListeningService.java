@@ -22,12 +22,12 @@ public class MulticastListeningService implements Runnable {
 
         try {
             // make the socket
-            mso = new MulticastSocket(port);
+            mso = new MulticastSocket();
             mso.setSoTimeout(30000);
 
             // join the group
             mso.joinGroup(InetAddress.getByName(multicast_ip));
-        }catch (SocketTimeoutException e){
+        } catch (SocketTimeoutException e){
             Ui.timeout();
         } catch (Exception e) {
                 e.printStackTrace();
@@ -50,7 +50,7 @@ public class MulticastListeningService implements Runnable {
                     receiveMessage();
                 } else { // incorrect header
                     Client.logIncorrectHeader("a UDP header", header);
-                } 
+                }
             }catch (IncorrectMessageException e) {
                 e.printStackTrace();
                 System.exit(1);
@@ -79,7 +79,7 @@ public class MulticastListeningService implements Runnable {
         // receive the rest of the message
         byte[] data = new byte[27];
         String message = "";
-        
+
         DatagramPacket paquet = new DatagramPacket(data, data.length);
         mso.receive(paquet);
         if (paquet.getLength() != 27) {
@@ -125,7 +125,7 @@ public class MulticastListeningService implements Runnable {
             Client.logIncorrectLengthMessage("GHOST", 11, paquet.getLength());
         }
         message = new String(paquet.getData(), 0, paquet.getLength());
-    
+
         // extract the information
         int ghost_x = Integer.parseInt(message.substring(1, 4));
         int ghost_y = Integer.parseInt(message.substring(5, 8));
@@ -145,7 +145,7 @@ public class MulticastListeningService implements Runnable {
             Client.logIncorrectLengthMessage("ENDGA", 17, paquet.getLength());
         }
         message = new String(paquet.getData(), 0, paquet.getLength());
-       
+
 
         String player_id = message.substring(1, 9);
         int winning_score = Integer.parseInt(message.substring(10, 14));
@@ -175,7 +175,7 @@ public class MulticastListeningService implements Runnable {
         // not checking how many bytes were received because
         // we don't know how big the message really is (only that it is max 200 chars)
         message = new String(paquet.getData(), 0, paquet.getLength());
-       
+
 
         String sender_id = message.substring(1, 9);
         String message_received = message.substring(10, message.length()-4);
