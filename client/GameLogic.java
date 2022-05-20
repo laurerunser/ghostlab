@@ -293,11 +293,6 @@ public class GameLogic {
         // no need to read the answer, the server can only acknowledge
         // since we are going to terminate the entire program soon,
         // no need to close all the sockets and reader/writer
-
-        // TODO show a pop-up
-        // the entire program should then die !
-        // don't forget to also kill the UDP server
-
     }
 
     public static void get_players() {

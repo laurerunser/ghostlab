@@ -60,7 +60,10 @@ public class GamePanel extends JPanel {
                 + "/" + GameLogic.nb_ghosts);
 
         quit_button = new JButton("QUIT");
-        quit_button.addActionListener(e -> GameLogic.i_quit());
+        quit_button.addActionListener(e -> {
+            GameLogic.i_quit();
+            show_quit_dialog();
+        });
 
         JPanel info_panel = new JPanel();
         info_panel.add(controls);
@@ -74,7 +77,7 @@ public class GamePanel extends JPanel {
 
         JButton up = new JButton("UP");
         up.addActionListener(e -> move_up(1));
-        controls.add(up, BorderLayout.NORTH)
+        controls.add(up, BorderLayout.NORTH);
 
         JButton down = new JButton("DOWN");
         down.addActionListener(e -> move_down(1));
@@ -247,5 +250,16 @@ public class GamePanel extends JPanel {
         current_x = new_x;
         current_y = new_y;
         return ok;
+    }
+
+    public void show_quit_dialog() {
+        JDialog dialog = new JDialog();
+        dialog.add(new JLabel("You've quit the game. Click on OK to close the program"));
+
+        JButton ok = new JButton("OK");
+        ok.addActionListener(e -> System.exit(1));
+        dialog.add(ok);
+
+        dialog.setVisible(true);
     }
 }
