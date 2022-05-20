@@ -239,8 +239,8 @@ void send_size_of_maze(int sock_fd, uint8_t game_id) {
         // if it has too many players for the user to register
         // => a player can see the size of the maze of any game
         //    as long as it exists
-        uint16_t width = ntohs(games[game_id].maze->width);
-        uint16_t height = ntohs(games[game_id].maze->height);
+        uint16_t width = htole16(games[game_id].maze->width);
+        uint16_t height = htole16(games[game_id].maze->height);
         pthread_mutex_unlock(&mutex);
 
         char message[16];
