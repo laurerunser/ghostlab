@@ -13,7 +13,7 @@ public class GameLogic {
     public static int nb_ghosts_left;
 
     public static String broadcast_ip;
-    public static String broadcast_port;
+    public static int broadcast_port;
 
     public static PlayerInfo[] players;
     public static PlayerInfo this_player;
@@ -21,8 +21,6 @@ public class GameLogic {
     public static GamePanel game_panel;
 
     public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException, InterruptedException {
-        make_udp_threads();
-
         // receive WELCO
         byte[] welco = new byte[39];
         int res = Client.tcp_socket_reader.read(welco, 0, 39);
@@ -42,9 +40,9 @@ public class GameLogic {
         nb_ghosts = Client.getShortFromByte(welco[13]);
         nb_ghosts_left = nb_ghosts;
         broadcast_ip = welco_str.substring(17, 32);
-        broadcast_port = welco_str.substring(32, 36);
+        broadcast_port = Integer.parseInt(welco_str.substring(32, 36));
 
-        Client.LOGGER.info(String.format("Received WELCO message : broadcast ip : %s, broadcast port : %s" +
+        Client.LOGGER.info(String.format("Received WELCO message : broadcast ip : %s, broadcast port : %d" +
                         "\nGame id : %d, height : %d, width %d, nb ghosts %d\n",
                 broadcast_ip, broadcast_port, game_id, height, width, nb_ghosts));
 
@@ -70,11 +68,14 @@ public class GameLogic {
 
         // ask for all the player's info
         get_players();
-        for (int i = 0; i<4; i++) {
+        for (int i = 0; i < 4; i++) {
             if (players.length > i && players[i].x == x && players[i].y == y) {
                 this_player = players[i];
             }
         }
+
+        // make the UDP services
+        make_udp_threads();
 
         // make the UI
         game_panel = new GamePanel(width, height, x, y);
@@ -83,10 +84,10 @@ public class GameLogic {
     }
 
     public static void make_udp_threads() throws InterruptedException {
-        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, Integer.parseInt(broadcast_port),
+        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, broadcast_port,
                 game_panel);
         MulticastListeningService multicast_service = new MulticastListeningService(broadcast_ip,
-                Integer.parseInt(broadcast_port), udp_service, game_panel);
+                broadcast_port, udp_service, game_panel);
 
         Thread t = new Thread(udp_service);
         Thread t2 = new Thread(multicast_service);
