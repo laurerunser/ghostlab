@@ -78,6 +78,22 @@ public class GamePanel extends JPanel {
     }
 
     public void update_score(int val) {
-        score.setText("Score : val");
+        score.setText("Score : " + val);
+    }
+
+    /**
+     * change the color of the block from light_gray to yellow
+     * then wait 0.5 second
+     * then change the color back to light_gray
+     */
+    public void show_ghost(int x, int y) {
+        JButton ghost = (JButton)grid.getComponentAt(x, y);
+        ghost.setBackground(Color.YELLOW);
+        try {
+            wait(50);
+        } catch (Exception e) {
+            // do nothing
+        }
+        ghost.setBackground(Color.LIGHT_GRAY);
     }
 }

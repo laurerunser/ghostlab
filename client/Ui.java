@@ -18,5 +18,9 @@ public class Ui extends JFrame {
         pregamePanel.setLayout(boxlayout);
         principal.add(pregamePanel);
     }
+
+    public void set_game_panel(GamePanel gamePanel) {
+        principal = gamePanel;
+    }
 }
 

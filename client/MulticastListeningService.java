@@ -9,10 +9,14 @@ public class MulticastListeningService implements Runnable {
     UDPListeningService udpService;
     boolean game_ended = false;
 
-    public MulticastListeningService(String multicast_ip, int multicast_port, UDPListeningService udpService) {
+    GamePanel gamePanel;
+
+    public MulticastListeningService(String multicast_ip, int multicast_port, UDPListeningService udpService,
+                                     GamePanel gamePanel) {
         this.ip = multicast_ip;
         this.port = multicast_port;
         this.udpService = udpService;
+        this.gamePanel = gamePanel;
 
         try {
             // make the socket
@@ -102,7 +106,11 @@ public class MulticastListeningService implements Runnable {
                 }
             }
         }
-        // TODO : update the UI with the new score
+        GameLogic.nb_ghosts_left--;
+
+        gamePanel.update_score(new_score);
+        gamePanel.update_nb_ghosts();
+
         // TODO : launch an animation that shows the ghost dying in its coordinates
     }
 
@@ -127,8 +135,8 @@ public class MulticastListeningService implements Runnable {
         int ghost_y = Integer.parseInt(message.substring(5, 8));
         Client.LOGGER.info(String.format("Ghost moved to x=%d, y=%d", ghost_x, ghost_y));
 
-        // TODO : update the UI (make the ghost appear briefly or smth)
-
+        // show the ghost on the UI
+        gamePanel.show_ghost(ghost_x, ghost_y);
     }
 
     public void signalEndgame() {

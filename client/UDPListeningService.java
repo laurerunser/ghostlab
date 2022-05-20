@@ -6,7 +6,10 @@ public class UDPListeningService implements Runnable{
     DatagramSocket dso;
     boolean game_ended; // change to false when game ends
 
-    public UDPListeningService(String ip, int port) {
+    GamePanel gamePanel;
+
+    public UDPListeningService(String ip, int port, GamePanel gamePanel) {
+        this.gamePanel = gamePanel;
         game_ended = false;
         try {
             dso = new DatagramSocket(port, InetAddress.getByName(ip));

@@ -17,14 +17,11 @@ public class Client {
     public static DataOutputStream tcp_socket_writer;
     public static Socket tcpSocket;
 
+    public static Ui ui;
+
     // TODO add timeout : if server disconnects or takes too long to respond
 
-    // TODO : add a `sent_start` boolean to be activate when sending the start message.
-    // => then any time we try to send a message, check it is OK
-    // otherwise, send a new exception (to be caught by the UI to display an error message)
-    // + log that we tried to send but wasn't allowed
-
-    public static void main(String[] args) throws IOException, IncorrectMessageException {
+    public static void main(String[] args) {
         // get connected to the server
         try {
             InetAddress serveur = InetAddress.getByName(serverName);
@@ -43,14 +40,14 @@ public class Client {
         // start UI
         javax.swing.SwingUtilities.invokeLater(
                 () -> {
-                    Ui v = null;
+                    ui = null;
                     try {
-                        v = new Ui();
+                        ui = new Ui();
                     } catch (Exception e) {
                         e.printStackTrace();
                         System.exit(0);
                     }
-                    v.setVisible(true);
+                    ui.setVisible(true);
                 }
         );
 

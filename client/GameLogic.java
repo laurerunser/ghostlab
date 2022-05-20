@@ -1,3 +1,4 @@
+import javax.swing.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -16,6 +17,8 @@ public class GameLogic {
 
     public static PlayerInfo[] players;
     public static PlayerInfo this_player;
+
+    public static GamePanel game_panel;
 
     public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException, InterruptedException {
         make_udp_threads();
@@ -72,12 +75,18 @@ public class GameLogic {
                 this_player = players[i];
             }
         }
+
+        // make the UI
+        game_panel = new GamePanel(width, height, x, y);
+        Client.ui.set_game_panel(game_panel);
+
     }
 
     public static void make_udp_threads() throws InterruptedException {
-        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, Integer.parseInt(broadcast_port));
+        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, Integer.parseInt(broadcast_port),
+                game_panel);
         MulticastListeningService multicast_service = new MulticastListeningService(broadcast_ip,
-                Integer.parseInt(broadcast_port), udp_service);
+                Integer.parseInt(broadcast_port), udp_service, game_panel);
 
         Thread t = new Thread(udp_service);
         Thread t2 = new Thread(multicast_service);
@@ -261,7 +270,7 @@ public class GameLogic {
 
         Client.LOGGER.info("Sent IQUIT");
 
-        // no need to read the answer, the server can only acknwloedge
+        // no need to read the answer, the server can only acknowledge
         // since we are going to terminate the entire program soon,
         // no need to close all the sockets and reader/writer
 
