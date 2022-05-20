@@ -166,7 +166,9 @@ public class MulticastListeningService implements Runnable {
         // no need to kill the GameLogic thread : it will die when the user
         // closes the UI pop-up
 
-        // TODO : update UI with a pop-up
+
+        // make a pop-up to signal end of game
+        gamePanel.show_endgame(player_id, winning_score);
     }
 
     /**

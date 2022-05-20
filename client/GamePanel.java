@@ -62,9 +62,7 @@ public class GamePanel extends JPanel {
                 + "/" + GameLogic.nb_ghosts);
 
         quit_button = new JButton("QUIT");
-        quit_button.addActionListener(e -> {
-            GameLogic.i_quit();
-        });
+        quit_button.addActionListener(e -> GameLogic.i_quit());
 
         JPanel info_panel = new JPanel();
         info_panel.add(score);
@@ -120,5 +118,24 @@ public class GamePanel extends JPanel {
             // do nothing
         }
         ghost.setBackground(Color.LIGHT_GRAY);
+    }
+
+
+    /**
+     * Shows a dialog that tells the user the game has ended
+     * Cliking the OK button terminates the program (the 2 UDP threads have
+     * been terminated before)
+     * @param winner_id         id of the winning player
+     * @param winning_score     score of the winning player
+     */
+    public void show_endgame(String winner_id, int winning_score) {
+        JDialog dialog = new JDialog();
+        dialog.add(new JLabel("The game has ended : " + winner_id + " won with " + winning_score + " points !"));
+
+        JButton ok = new JButton("OK (this will close the program)");
+        ok.addActionListener(e -> System.exit(0));
+        dialog.add(ok);
+
+        dialog.setVisible(true);
     }
 }
