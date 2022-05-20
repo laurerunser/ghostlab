@@ -40,11 +40,11 @@ public class GamePanel extends JPanel {
 
         // add the playing grid
         make_grid(width, height);
-        this.add(grid, CENTER_ALIGNMENT);
+        this.add(grid, BorderLayout.CENTER);
         this.group_chat = new ChatGroup();
         this.perso_chat = new ChatPannel();
-        this.add(perso_chat,LEFT_ALIGNMENT );
-        this.add(group_chat, RIGHT_ALIGNMENT);
+        this.add(perso_chat, BorderLayout.WEST);
+        this.add(group_chat, BorderLayout.EAST);
 
 
         // add controls and score, nb of ghosts and quit buttons
