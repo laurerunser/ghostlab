@@ -20,7 +20,7 @@ public class GamePanel extends JPanel {
     public ChatPannel perso_chat;
 
     public class ChatPannel extends JPanel{
-        static ChatFrame [] chats;
+        ChatFrame [] chats;
 
         public class ChatFrame extends JPanel {
             LinkedList <JLabel> pannel;
@@ -64,7 +64,7 @@ public class GamePanel extends JPanel {
         }
 
         //Obtenir le Frame liée au joueur
-        public static ChatFrame getFrame (String id){
+        public ChatFrame getFrame (String id){
             for (int i=0; i < chats.length; i++){
                 if (id.equals(chats[i].pseudo)){
                     return chats[i];     

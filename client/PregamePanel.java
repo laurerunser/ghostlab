@@ -38,10 +38,12 @@ public class PregamePanel extends JPanel {
     }
 
     public void addListOfGames(int[] nbPlayers) {
-        listOfGames = new JPanel();
+        this.listOfGames.removeAll();
         listOfGames.setLayout(new GridLayout());
         for (int i = 0; i < nbPlayers.length; i++) {
+            System.out.println("game " + i);
             if (nbPlayers[i] > 0) {
+                System.out.println("needs a button");
                 JButton bouton = new JButton("game " + i);
                 int j = i; // the variable in the listener below must be effectively final
                 bouton.addActionListener(e -> seeGameDetails(j));
@@ -55,7 +57,8 @@ public class PregamePanel extends JPanel {
         try {
             int[] nbPlayers = PregameLogic.getAllGamesAndNbOfPlayers();
             addListOfGames(nbPlayers);
-            listOfGames.updateUI();
+	        listOfGames.updateUI();
+
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
