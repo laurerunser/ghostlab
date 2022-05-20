@@ -352,7 +352,7 @@ public class GameLogic {
             int res = Client.tcp_socket_reader.read(buf, 0, 31);
             answer = new String(buf);
 
-            if (res != 30) {
+            if (res != 31) {
                 Client.logIncorrectLengthMessage("GPLYR", 31, res);
             } else if (!answer.startsWith("GPLYR")) {
                 Client.logIncorrectHeader("GPLYR", answer);
