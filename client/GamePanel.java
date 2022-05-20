@@ -26,12 +26,8 @@ public class GamePanel extends JPanel {
         make_grid(width, height);
         this.add(grid, CENTER_ALIGNMENT);
 
-        // add the controls
-
-        // add score, nb of ghosts and quit buttons
+        // add controls and score, nb of ghosts and quit buttons
         add_top_info();
-
-
     }
 
     public void make_grid(int width, int height) {
@@ -57,6 +53,8 @@ public class GamePanel extends JPanel {
     }
 
     public void add_top_info() {
+        JPanel controls = make_controls();
+
         score = new JLabel("Score : 0");
         nb_ghosts_left = new JLabel("Ghosts left : " + GameLogic.nb_ghosts_left
                 + "/" + GameLogic.nb_ghosts);
@@ -65,9 +63,32 @@ public class GamePanel extends JPanel {
         quit_button.addActionListener(e -> GameLogic.i_quit());
 
         JPanel info_panel = new JPanel();
+        info_panel.add(controls);
         info_panel.add(score);
         info_panel.add(nb_ghosts_left);
         info_panel.add(quit_button);
+    }
+
+    public JPanel make_controls() {
+        JPanel controls = new JPanel(new BorderLayout());
+
+        JButton up = new JButton("UP");
+        up.addActionListener(e -> move_up(1));
+        controls.add(up, BorderLayout.NORTH)
+
+        JButton down = new JButton("DOWN");
+        down.addActionListener(e -> move_down(1));
+        controls.add(down, BorderLayout.SOUTH);
+
+        JButton left = new JButton("LEFT");
+        left.addActionListener(e -> move_left(1));
+        controls.add(left, BorderLayout.WEST);
+
+        JButton right = new JButton("RIGHT");
+        right.addActionListener(e -> move_right(1));
+        controls.add(right, BorderLayout.EAST);
+
+        return controls;
     }
 
     public void update_nb_ghosts() {
@@ -137,5 +158,94 @@ public class GamePanel extends JPanel {
         dialog.add(ok);
 
         dialog.setVisible(true);
+    }
+
+    public void move_up(int d) {
+        int[] new_coordinates = GameLogic.moveUp(d);
+
+        boolean move_ok = update_player_on_grid(new_coordinates[0], new_coordinates[1], d);
+
+        if (!move_ok) { // make a black block just above the current player position
+            if (current_y + 1 != height) { // if the player is not at the top of the game already
+                JButton block = (JButton) grid.getComponentAt(current_x, current_y+1);
+                block.setBackground(Color.BLACK);
+                block.setBorder(new LineBorder(Color.BLACK));
+            }
+        }
+    }
+
+    public void move_down(int d) {
+        int[] new_coordinates = GameLogic.moveDown(d);
+
+        boolean move_ok = update_player_on_grid(new_coordinates[0], new_coordinates[1], d);
+
+        if (!move_ok) { // make a black block just above the current player position
+            if (current_y != 0) { // if the player is not at the bottom of the game already
+                JButton block = (JButton) grid.getComponentAt(current_x, current_y-1);
+                block.setBackground(Color.BLACK);
+                block.setBorder(new LineBorder(Color.BLACK));
+            }
+        }
+    }
+
+    public void move_left(int d) {
+        int[] new_coordinates = GameLogic.moveLeft(d);
+
+        boolean move_ok = update_player_on_grid(new_coordinates[0], new_coordinates[1], d);
+
+        if (!move_ok) { // make a black block just above the current player position
+            if (current_x != 0) { // if the player is not at the left of the game already
+                JButton block = (JButton) grid.getComponentAt(current_x-1, current_y);
+                block.setBackground(Color.BLACK);
+                block.setBorder(new LineBorder(Color.BLACK));
+            }
+        }
+    }
+
+    public void move_right(int d) {
+        int[] new_coordinates = GameLogic.moveRight(d);
+
+        boolean move_ok = update_player_on_grid(new_coordinates[0], new_coordinates[1], d);
+
+        if (!move_ok) { // make a black block just above the current player position
+            if (current_x + 1 != width) { // if the player is not at the top of the game already
+                JButton block = (JButton) grid.getComponentAt(current_x+1, current_y);
+                block.setBackground(Color.BLACK);
+                block.setBorder(new LineBorder(Color.BLACK));
+            }
+        }
+    }
+
+    /**
+     * Updates the blue dot of the player
+     * also update the current_x and current_y variables
+     * @param new_x the new x-coordinate
+     * @param new_y the new y-coordinate
+     * @return true if the move was done completely, false if not (means there is an obstacle)
+     */
+    public boolean update_player_on_grid(int new_x, int new_y, int d) {
+        boolean ok;
+        if (new_x == current_x && new_y == current_y) {
+            return false; // no visual update of player, can't move
+        } else {
+            ok = current_x + d == new_x || current_x - d == new_x
+                    || current_y + d == new_y || current_y - d == new_y;
+            // ok will be true if the move was complete, or false if the player
+            // couldn't travel all the way
+        }
+
+        // update the player on the grid
+        JButton old_pos = (JButton)grid.getComponentAt(current_x, current_y);
+        old_pos.setBackground(Color.LIGHT_GRAY);
+        old_pos.setBackground(Color.DARK_GRAY);
+
+        JButton new_pos = (JButton)grid.getComponentAt(new_x, new_y);
+        new_pos.setBackground(Color.BLUE);
+        new_pos.setBackground(Color.BLACK);
+
+        // update current position variables
+        current_x = new_x;
+        current_y = new_y;
+        return ok;
     }
 }

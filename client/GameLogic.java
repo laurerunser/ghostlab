@@ -107,27 +107,47 @@ public class GameLogic {
      * @param d the number of steps to take
      * @return the new position of the player after the move
      */
-    public static int[] moveUp(int d) throws IOException, IncorrectMessageException {
-        send_movement_and_log(d, "UPMOV");
-        receiveMOVE_answer();
+    public static int[] moveUp(int d) {
+        try {
+            send_movement_and_log(d, "UPMOV");
+            receiveMOVE_answer();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveDown(int d) throws IOException, IncorrectMessageException {
+    public static int[] moveDown(int d) {
+        try {
         send_movement_and_log(d, "DOMOV");
         receiveMOVE_answer();
+        } catch (Exception e) {
+        e.printStackTrace();
+        System.exit(1);
+    }
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveLeft(int d) throws IOException, IncorrectMessageException {
+    public static int[] moveLeft(int d) {
+        try {
         send_movement_and_log(d, "LEMOV");
         receiveMOVE_answer();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveRight(int d) throws IOException, IncorrectMessageException {
+    public static int[] moveRight(int d) {
+        try {
         send_movement_and_log(d, "RIMOV");
         receiveMOVE_answer();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         return new int[]{this_player.x, this_player.y};
     }
 
