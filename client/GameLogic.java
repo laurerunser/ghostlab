@@ -369,5 +369,4 @@ public class GameLogic {
 
         return new PlayerInfo(id, x, y, score);
     }
-
 }
