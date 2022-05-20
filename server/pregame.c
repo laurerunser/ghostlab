@@ -375,6 +375,9 @@ player_data create_new_game(int sock_fd, char *buf, struct sockaddr_in *client_a
         games[game_id].players[j].sent_start = false;
         games[game_id].players[j].game_number = game_id;
         games[game_id].players[j].player_number = j;
+
+        games[game_id].maze->x_start[j] = mazes[0].x_start[j];
+        games[game_id].maze->y_start[j] = mazes[0].y_start[j];
     }
 
     // add the first player

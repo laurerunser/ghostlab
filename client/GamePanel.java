@@ -31,14 +31,15 @@ public class GamePanel extends JPanel {
         this.add(grid, BorderLayout.CENTER);
 
         // add controls and score, nb of ghosts and quit buttons
-        add_top_info();
+        JPanel top_info = add_top_info();
+        this.add(top_info, BorderLayout.NORTH);
 
-        // add the chats (general on the left, personal on the right)
-        this.group_chat = new GeneralChat();
-        this.add(group_chat, BorderLayout.WEST);
-
-        this.perso_chat = new PersonalChat();
-        this.add(perso_chat, BorderLayout.EAST);
+//        // add the chats (general on the left, personal on the right)
+//        this.group_chat = new GeneralChat();
+//        this.add(group_chat, BorderLayout.WEST);
+//
+//        this.perso_chat = new PersonalChat();
+//        this.add(perso_chat, BorderLayout.EAST);
     }
 
     public JPanel make_grid(int width, int height) {
@@ -67,7 +68,7 @@ public class GamePanel extends JPanel {
         return grid;
     }
 
-    public void add_top_info() {
+    public JPanel add_top_info() {
         JPanel controls = make_controls();
 
         score = new JLabel("Score : 0");
@@ -85,6 +86,8 @@ public class GamePanel extends JPanel {
         info_panel.add(score);
         info_panel.add(nb_ghosts_left);
         info_panel.add(quit_button);
+
+        return info_panel;
     }
 
     public JPanel make_controls() {
