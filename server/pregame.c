@@ -484,6 +484,10 @@ void unregister_player(int sock_fd, player_data current_player) {
     pthread_mutex_lock(&mutex);
     int game_id = current_player.game_number;
     games[game_id].players[current_player.player_number].is_a_player = false;
+
+    games[game_id].nb_players -= 1;
+    
+    
     pthread_mutex_unlock(&mutex);
 
     // send message
