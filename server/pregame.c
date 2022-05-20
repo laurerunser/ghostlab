@@ -273,10 +273,12 @@ bool handle_start_message(int sock_fd) {
     // check if the game is ready to start
     bool ready_to_start = true;
     if (games[current_player.game_number].nb_players < 4) {
+        fprintf(stdout, "not enough players\n");
         ready_to_start = false;
     }
     for (int i = 0; i < 4; i++) {
         if (!games[current_player.game_number].players[i].sent_start) {
+            fprintf(stdout, "player %d didn't send start\n", i);
             ready_to_start = false;
         }
     }
@@ -443,9 +445,10 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     // this method MUST be used inside of a mutex !!
 
     games[game_id].players[player_index].is_a_player = true;
-    memmove(games[game_id].players[0].id, &buf[6], 8); // id starts at position 6
+    memmove(games[game_id].players[player_index].id, &buf[6], 8); // id starts at position 6
     games[game_id].players[player_index].tcp_socket = sock_fd;
-
+    games[game_id].players[player_index].player_number = player_index;
+    
     // get player's udp port and put it in the address -> will be used to send UDP messages
     char udp_port[5];
     memmove(udp_port, &buf[16], 4);
@@ -458,7 +461,7 @@ void add_player_to_game(int game_id, int player_index, char *buf, int sock_fd, s
     games[game_id].players[player_index].address = client_address;
 
     // update current_player
-    current_player = games[game_id].players[0];
+    current_player = games[game_id].players[player_index];
 
     // update nb of players in the game
     games[game_id].nb_players += 1;
