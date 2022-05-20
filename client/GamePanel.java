@@ -43,9 +43,6 @@ public class GamePanel extends JPanel {
     }
 
     public JPanel make_grid(int width, int height) {
-        JLabel la = new JLabel("grid");
-        this.add(la);
-
         // the grid is made of JButtons, without any listeners -> they can't be clicked
         // but this is an easy way of making a grid
         grid = new JPanel(new GridLayout(width, height));
@@ -94,11 +91,11 @@ public class GamePanel extends JPanel {
         JPanel controls = new JPanel(new BorderLayout());
 
         JButton up = new JButton("UP");
-        up.addActionListener(e -> move_up(1));
+        up.addActionListener(e -> move_down(1));
         controls.add(up, BorderLayout.NORTH);
 
         JButton down = new JButton("DOWN");
-        down.addActionListener(e -> move_down(1));
+        down.addActionListener(e -> move_up(1));
         controls.add(down, BorderLayout.SOUTH);
 
         JButton left = new JButton("LEFT");
