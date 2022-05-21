@@ -55,15 +55,16 @@ void add_walls_and_default_pos() {
     y[3] = 5;
 
     // add players to the maze
-    m[3][0] = 3;
-    m[0][1] = 3;
+    m[0][3] = 3;
+    m[1][0] = 3;
     m[5][5] = 3;
-    m[1][5] = 3;
+    m[5][1] = 3;
 
     // add ghosts
-    for (int i = 0; i < 4; i++) {
-        m[1][i] = 2;
-    }
+    m[1][1] = 2;
+    m[3][2] = 2;
+    m[3][3] = 2;
+    m[3][4] = 3;
 }
 
 void init_test_1() {
