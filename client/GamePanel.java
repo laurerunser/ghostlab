@@ -4,6 +4,7 @@ import java.awt.*;
 
 public class GamePanel extends JPanel {
     public JPanel grid;
+    public JButton[][] blocks;
 
     public JLabel score;
     public JLabel nb_ghosts_left;
@@ -46,6 +47,7 @@ public class GamePanel extends JPanel {
         // the grid is made of JButtons, without any listeners -> they can't be clicked
         // but this is an easy way of making a grid
         grid = new JPanel(new GridLayout(width, height));
+        blocks = new JButton[width][height];
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
@@ -54,11 +56,13 @@ public class GamePanel extends JPanel {
                     player.setBorder(new LineBorder(Color.BLACK));
                     player.setBackground(Color.BLUE);
                     grid.add(player, i, j);
+                    blocks[i][j] = player;
                 } else { // place grey block
                     JButton block = new JButton();
                     block.setBackground(Color.LIGHT_GRAY);
                     block.setBorder(new LineBorder(Color.DARK_GRAY));
                     grid.add(block, i, j);
+                    blocks[i][j] = block;
                 }
             }
         }
@@ -143,7 +147,7 @@ public class GamePanel extends JPanel {
      * @param y ghost y coordinate
      */
     public void ghost_dies(int x, int y) {
-        JButton ghost = (JButton)grid.getComponentAt(x, y);
+        JButton ghost = blocks[y][x];
         ghost.setBackground(Color.YELLOW);
         try {
             wait(50);
@@ -185,7 +189,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_y + 1 != height) { // if the player is not at the top of the game already
-                JButton block = (JButton) grid.getComponentAt(current_x, current_y+1);
+                JButton block = blocks[current_y][current_x];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -199,7 +203,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_y != 0) { // if the player is not at the bottom of the game already
-                JButton block = (JButton) grid.getComponentAt(current_x, current_y-1);
+                JButton block = blocks[current_y - 1][current_x];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -213,7 +217,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_x != 0) { // if the player is not at the left of the game already
-                JButton block = (JButton) grid.getComponentAt(current_x-1, current_y);
+                JButton block = blocks[current_y][current_x - 1];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -227,7 +231,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_x + 1 != width) { // if the player is not at the top of the game already
-                JButton block = (JButton) grid.getComponentAt(current_x+1, current_y);
+                JButton block = blocks[current_x + 1][current_y];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -253,11 +257,11 @@ public class GamePanel extends JPanel {
         }
 
         // update the player on the grid
-        JButton old_pos = (JButton) grid.getComponentAt(current_y, current_x);
+        JButton old_pos = blocks[current_y][current_x];
         old_pos.setBackground(Color.LIGHT_GRAY);
         old_pos.setBackground(Color.DARK_GRAY);
 
-        JButton new_pos = (JButton) grid.getComponentAt(new_y, new_x);
+        JButton new_pos = blocks[new_y][new_x];
         new_pos.setBackground(Color.BLUE);
         new_pos.setBackground(Color.BLACK);
 
