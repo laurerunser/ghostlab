@@ -133,7 +133,7 @@ void send_initial_position(player_data *this_player) {
 
     // add the player into the maze
     pthread_mutex_lock(&mutex);
-    maze[this_player->x][this_player->y] = 3;
+    maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
 
     // add position to message

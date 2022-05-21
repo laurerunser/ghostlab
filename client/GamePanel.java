@@ -51,7 +51,7 @@ public class GamePanel extends JPanel {
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                if (i == current_y && j == current_x) { // place current player (in blue)
+                if (i == current_x && j == current_y) { // place current player (in blue)
                     JButton player = new JButton();
                     player.setBorder(new LineBorder(Color.BLACK));
                     player.setBackground(Color.BLUE);
@@ -130,7 +130,7 @@ public class GamePanel extends JPanel {
      * @param y ghost y coordinate
      */
     public void show_ghost(int x, int y) {
-        JButton ghost = (JButton)grid.getComponentAt(x, y);
+        JButton ghost = blocks[x][y];
         ghost.setBackground(Color.YELLOW);
         try {
             wait(50);
@@ -147,7 +147,7 @@ public class GamePanel extends JPanel {
      * @param y ghost y coordinate
      */
     public void ghost_dies(int x, int y) {
-        JButton ghost = blocks[y][x];
+        JButton ghost = blocks[x][y];
         ghost.setBackground(Color.YELLOW);
         try {
             wait(50);
@@ -189,7 +189,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_y + 1 != height) { // if the player is not at the top of the game already
-                JButton block = blocks[current_y + 1][current_x];
+                JButton block = blocks[current_x][current_y + 1];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -203,7 +203,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_y != 0) { // if the player is not at the bottom of the game already
-                JButton block = blocks[current_y - 1][current_x];
+                JButton block = blocks[current_x][current_y - 1];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -217,7 +217,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_x != 0) { // if the player is not at the left of the game already
-                JButton block = blocks[current_y][current_x - 1];
+                JButton block = blocks[current_x - 1][current_y];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -231,7 +231,7 @@ public class GamePanel extends JPanel {
 
         if (!move_ok) { // make a black block just above the current player position
             if (current_x + 1 != width) { // if the player is not at the top of the game already
-                JButton block = blocks[current_y][current_x + 1];
+                JButton block = blocks[current_x + 1][current_y];
                 block.setBackground(Color.BLACK);
                 block.setBorder(new LineBorder(Color.BLACK));
             }
@@ -257,11 +257,11 @@ public class GamePanel extends JPanel {
         }
 
         // update the player on the grid
-        JButton old_pos = blocks[current_y][current_x];
+        JButton old_pos = blocks[current_x][current_y];
         old_pos.setBackground(Color.LIGHT_GRAY);
         old_pos.setBorder(new LineBorder(Color.DARK_GRAY));
 
-        JButton new_pos = blocks[new_y][new_x];
+        JButton new_pos = blocks[new_x][new_y];
         new_pos.setBackground(Color.BLUE);
         new_pos.setBorder(new LineBorder(Color.BLACK));
 

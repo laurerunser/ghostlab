@@ -171,9 +171,10 @@ public class GameLogic {
             read_new_coordinates();
             Client.LOGGER.info(String.format("Read MOVE! answer. New position x=%d, y=%d\n", this_player.x, this_player.y));
         } else if (header_str.equals("MOVEF")) {
+            read_new_coordinates();
             // the score is handled when receiving the UDP message
-            Client.LOGGER.info(String.format("Read MOVE! answer. New position x=%d, y=%d\n", this_player.x, this_player.y));
-            res = Client.tcp_socket_reader.read(null, 0, 4); // discard the extra 4 bytes for the score
+            Client.LOGGER.info(String.format("Read MOVEF answer. New position x=%d, y=%d\n", this_player.x, this_player.y));
+            res = Client.tcp_socket_reader.read(header, 0, 4); // discard the extra 4 bytes for the score
         } else {
             Client.logIncorrectHeader("MOVE! or MOVEF", header_str);
         }
