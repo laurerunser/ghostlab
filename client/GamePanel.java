@@ -35,11 +35,11 @@ public class GamePanel extends JPanel {
         this.add(top_info, BorderLayout.NORTH);
 
 //        // add the chats (general on the left, personal on the right)
-//        this.group_chat = new GeneralChat();
-//        this.add(group_chat, BorderLayout.WEST);
+        this.group_chat = new GeneralChat();
+        this.add(group_chat, BorderLayout.WEST);
 //
-//        this.perso_chat = new PersonalChat();
-//        this.add(perso_chat, BorderLayout.EAST);
+        this.perso_chat = new PersonalChat();
+        this.add(perso_chat, BorderLayout.EAST);
     }
 
     public JPanel make_grid(int width, int height) {
