@@ -193,7 +193,7 @@ public class GameLogic {
     }
 
     public static void send_movement_and_log(int d, String context) throws IOException {
-        String message = String.format("%s %d***", context, d);
+        String message = String.format("%s %03d***", context, d);
         byte[] buf = message.getBytes(StandardCharsets.UTF_8);
 
         Client.tcp_socket_writer.write(buf);

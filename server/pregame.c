@@ -283,8 +283,6 @@ bool handle_start_message(int sock_fd, player_data current_player) {
     }
 
     if (ready_to_start) {
-        fprintf(stderr, "Game %d is ready to start\n", current_player.game_number);
-
         // create 4 threads to run the game (see code in game.c file)
         player_data *players = games[current_player.game_number].players;
         for (int i = 0; i<4; i++) {
