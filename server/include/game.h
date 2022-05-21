@@ -8,15 +8,15 @@
 
 #define BROADCAST_IP "255.255.255.255"
 
-void send_welcome_message(player_data *this_player);
+void send_welcome_message(player_data *this_player, maze_data *maze, game_data *game);
 
-void send_initial_position(player_data *this_player);
+void send_initial_position(player_data *this_player, maze_data *maze);
 
 void *start_game(void *player);
 
-void handle_game_requests(player_data *this_player);
+void handle_game_requests(player_data *this_player, game_data *game, maze_data *maze);
 
-bool game_has_ended();
+bool game_has_ended(game_data *game);
 
 /*
  * Receives the end of a UP/DO/LE/RIMOV message
@@ -32,29 +32,29 @@ int receive_move_message(char *context, char *buf, player_data *this_player);
 /*
  * steps : the max number of steps to take
 */
-void move_up(int steps, player_data *this_player);
+void move_up(int steps, player_data *this_player, maze_data *maze, game_data *game);
 
-void move_down(int steps, player_data *this_player);
+void move_down(int steps, player_data *this_player, maze_data *maze, game_data *game);
 
-void move_left(int steps, player_data *this_player);
+void move_left(int steps, player_data *this_player, maze_data *maze, game_data *game);
 
-void move_right(int steps, player_data *this_player);
+void move_right(int steps, player_data *this_player, maze_data *maze, game_data *game);
 
 void send_MOVEF(player_data *this_player);
 
 void send_MOVE(player_data *this_player);
 
-void player_quits(player_data *this_player);
+void player_quits(player_data *this_player, game_data *game);
 
-void send_list_of_players_for_game(player_data *this_player);
+void send_list_of_players_for_game(player_data *this_player, game_data *game);
 
-void send_score_multicast(player_data *this_player);
+void send_score_multicast(player_data *this_player, game_data *game);
 
-void send_endgame_multicast();
+void send_endgame_multicast(game_data *game);
 
-void send_message_to_all(player_data *this_player);
+void send_message_to_all(player_data *this_player, game_data *game);
 
-void send_personal_message(player_data *this_player);
+void send_personal_message(player_data *this_player, game_data *game);
 
 /*
  * Returns the length of the message that was read (with the *** at the end)

@@ -8,24 +8,18 @@ extern pthread_mutex_t mutex;
 // placeholder defined in pregame.c
 extern player_data placeholder_player;
 
-// the game we are using
-// !! Both the game and the maze MUST be protected by the
-// mutex !!
-game_data *game;
-maze_data *maze;
-
 void *start_game(void *player) {
     // get the data into easily accessible structs
     player_data *this_player = (player_data *) player;
-    game = &games[this_player->game_number];
-    maze = game->maze;
+    game_data *game = &games[this_player->game_number];
+    maze_data *maze = game->maze;
 
     this_player->score = 0; // init the score
 
-    send_welcome_message(this_player);
-    send_initial_position(this_player);
+    send_welcome_message(this_player, maze, game);
+    send_initial_position(this_player, maze);
 
-    handle_game_requests(this_player);
+    handle_game_requests(this_player, game, maze);
 
     // send [GOBYE] message to signal game has ended
     send_all(this_player->tcp_socket, "GOBYE***", 8);
@@ -41,13 +35,13 @@ void *start_game(void *player) {
     return NULL;
 }
 
-void handle_game_requests(player_data *this_player) {
+void handle_game_requests(player_data *this_player, game_data *game, maze_data *maze) {
     char buf[14]; // size of the [SEND?] message without the message part
     // we will use another buffer to get the 'mess' part of the [SEND?] and [MALL?] messages
 
     // stop reading messages if the game has ended
     // or if the player quit (this_player will be replaced with a placeholder)
-    while (!game_has_ended() && this_player->is_a_player) {
+    while (!game_has_ended(game) && this_player->is_a_player) {
         // receive header of message
         long res = recv(this_player->tcp_socket, buf, 5, 0);
         if (!isRecvRightLength(res, 5, "Header of a game message")) {
@@ -57,37 +51,37 @@ void handle_game_requests(player_data *this_player) {
         // handle the message depending on the header
         if (strncmp("UPMOV", buf, 5) == 0) {
             int steps = receive_move_message("UPMOV", buf, this_player);
-            move_up(steps, this_player);
+            move_up(steps, this_player, maze, game);
         } else if (strncmp("DOMOV", buf, 5) == 0) {
             int steps = receive_move_message("DOMOV", buf, this_player);
-            move_down(steps, this_player);
+            move_down(steps, this_player, maze, game);
         } else if (strncmp("LEMOV", buf, 5) == 0) {
             int steps = receive_move_message("LEMOV", buf, this_player);
-            move_left(steps, this_player);
+            move_left(steps, this_player, maze, game);
         } else if (strncmp("RIMOV", buf, 5) == 0) {
             int steps = receive_move_message("RIMOV", buf, this_player);
-            move_right(steps, this_player);
+            move_right(steps, this_player, maze, game);
         } else if (strncmp("IQUIT", buf, 5) == 0) {
-            player_quits(this_player);
+            player_quits(this_player, game);
             // read end of message
             res = recv(this_player->tcp_socket, buf, 3, 0);
         } else if (strncmp("GLIS?", buf, 5) == 0) {
-            send_list_of_players_for_game(this_player);
+            send_list_of_players_for_game(this_player, game);
             // read end of message
             res = recv(this_player->tcp_socket, buf, 3, 0);
             if (!isRecvRightLength(res, 3, "IQUIT")) {
                 break; // ignore incomplete message
             }
         } else if (strncmp("MALL?", buf, 5) == 0) {
-            send_message_to_all(this_player);
+            send_message_to_all(this_player, game);
         } else if (strncmp("SEND?", buf, 5) == 0) {
-            send_personal_message(this_player);
+            send_personal_message(this_player, game);
         }
     }
 }
 
 
-void send_welcome_message(player_data *this_player) {
+void send_welcome_message(player_data *this_player, maze_data *maze, game_data *game) {
     char welcome_msg[39];
     memmove(welcome_msg, "WELCO ", 6); // NOLINT(bugprone-not-null-terminated-result)
     memmove(welcome_msg + 6, &this_player->game_number, 1); // game number
@@ -119,7 +113,7 @@ void send_welcome_message(player_data *this_player) {
             this_player->tcp_socket, this_player->id);
 }
 
-void send_initial_position(player_data *this_player) {
+void send_initial_position(player_data *this_player, maze_data *maze) {
     char message[25];
     sprintf(message, "POSIT %s ", this_player->id);
 
@@ -166,7 +160,7 @@ int receive_move_message(char *context, char *buf, player_data *this_player) {
     return d;
 }
 
-void move_up(int steps, player_data *this_player) {
+void move_up(int steps, player_data *this_player, maze_data *maze, game_data *game) {
     if (steps == -1) {
         return; // the header message wasn't read properly
     }
@@ -195,14 +189,14 @@ void move_up(int steps, player_data *this_player) {
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
             printf("i");
-            send_score_multicast(this_player);
+            send_score_multicast(this_player, game);
 
             // if this was the last ghost, this is the end of the game
             // this MUST be here (== at the capture of the ghost) and
             // not in the has_game_ended method because otherwise several
             // threads could send the message at the same time
             if (game->nb_ghosts_left == 0) {
-                send_endgame_multicast(this_player);
+                send_endgame_multicast(game);
             }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
@@ -227,7 +221,7 @@ void move_up(int steps, player_data *this_player) {
 }
 
 
-void move_down(int steps, player_data *this_player) {
+void move_down(int steps, player_data *this_player, maze_data *maze, game_data *game) {
     if (steps == -1) {
         return; // the header message wasn't read properly
     }
@@ -253,14 +247,14 @@ void move_down(int steps, player_data *this_player) {
             this_player->score += 10;
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
-            send_score_multicast(this_player);
+            send_score_multicast(this_player, game);
 
             // if this was the last ghost, this is the end of the game
             // this MUST be here (== at the capture of the ghost) and
             // not in the has_game_ended method because otherwise several
             // threads could send the message at the same time
             if (game->nb_ghosts_left == 0) {
-                send_endgame_multicast(this_player);
+                send_endgame_multicast(game);
             }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
@@ -284,7 +278,7 @@ void move_down(int steps, player_data *this_player) {
     }
 }
 
-void move_left(int steps, player_data *this_player) {
+void move_left(int steps, player_data *this_player, maze_data *maze, game_data *game) {
     if (steps == -1) {
         return; // the header message wasn't read properly in the previous method
     }
@@ -309,14 +303,14 @@ void move_left(int steps, player_data *this_player) {
             this_player->score += 10;
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
-            send_score_multicast(this_player);
+            send_score_multicast(this_player, game);
 
             // if this was the last ghost, this is the end of the game
             // this MUST be here (== at the capture of the ghost) and
             // not in the has_game_ended method because otherwise several
             // threads could send the message at the same time
             if (game->nb_ghosts_left == 0) {
-                send_endgame_multicast(this_player);
+                send_endgame_multicast(game);
             }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
@@ -339,7 +333,7 @@ void move_left(int steps, player_data *this_player) {
     }
 }
 
-void move_right(int steps, player_data *this_player) {
+void move_right(int steps, player_data *this_player, maze_data *maze, game_data *game) {
     if (steps == -1) {
         return; // the header message wasn't read properly in the previous method
     }
@@ -364,14 +358,14 @@ void move_right(int steps, player_data *this_player) {
             this_player->score += 10;
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
-            send_score_multicast(this_player);
+            send_score_multicast(this_player, game);
 
             // if this was the last ghost, this is the end of the game
             // this MUST be here (== at the capture of the ghost) and
             // not in the has_game_ended method because otherwise several
             // threads could send the message at the same time
             if (game->nb_ghosts_left == 0) {
-                send_endgame_multicast(this_player);
+                send_endgame_multicast(game);
             }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
@@ -436,7 +430,7 @@ void send_MOVE(player_data *this_player) {
     fprintf(stderr, "fd %d : Sent [MOVE!] message\n", this_player->tcp_socket);
 }
 
-bool game_has_ended() {
+bool game_has_ended(game_data *game) {
     pthread_mutex_lock(&mutex);
     bool res = game->nb_ghosts_left == 0
                || game->nb_players == 0;
@@ -444,7 +438,7 @@ bool game_has_ended() {
     return res;
 }
 
-void player_quits(player_data *this_player) {
+void player_quits(player_data *this_player, game_data *game) {
     // remove the player from the game
     pthread_mutex_lock(&mutex);
     game->players[this_player->player_number] = placeholder_player;
@@ -462,7 +456,7 @@ void player_quits(player_data *this_player) {
     // The sockets are also closed there.
 }
 
-void send_list_of_players_for_game(player_data *this_player) {
+void send_list_of_players_for_game(player_data *this_player, game_data *game) {
     char player_ids[4][8];
     bool is_a_player[4];
 
@@ -514,7 +508,7 @@ void send_list_of_players_for_game(player_data *this_player) {
     fprintf(stderr, "fd %d : sent GLIS! and GPLYR messages\n", this_player->tcp_socket);
 }
 
-void send_score_multicast(player_data *this_player) {
+void send_score_multicast(player_data *this_player, game_data *game) {
     char mess[30];
     char *score = int_to_4_bytes(this_player->score);
     char *x = int_to_3_bytes(this_player->x);
@@ -532,7 +526,7 @@ void send_score_multicast(player_data *this_player) {
             this_player->score);
 }
 
-void send_endgame_multicast() {
+void send_endgame_multicast(game_data *game) {
     char mess[22];
 
     // find the player with the highest score
@@ -556,7 +550,7 @@ void send_endgame_multicast() {
     fprintf(stderr, "Sent ENDGA message : player fd=%d won with score %d\n", best_player.tcp_socket, best_player.score);
 }
 
-void send_message_to_all(player_data *this_player) {
+void send_message_to_all(player_data *this_player, game_data *game) {
     // read the message and send the multicast
     struct sockaddr_in addr;
     inet_pton(AF_INET, MULTICAST_ADDR, &addr.sin_addr);
@@ -570,7 +564,7 @@ void send_message_to_all(player_data *this_player) {
     isRecvRightLength(res, length_to_recv, "MALL?");
 }
 
-void send_personal_message(player_data *this_player) {
+void send_personal_message(player_data *this_player, game_data *game) {
     // read the recipient id (with the space before but not the space after)
     char id[10];
     long res = recv(this_player->tcp_socket, id, 9, 0);

@@ -32,6 +32,7 @@ public class MulticastListeningService implements Runnable {
 
     public void run() {
         while(!game_ended) {
+            System.out.println("waiting for header");
             String header = receiveHeader();
             if (header.startsWith("SCORE")) {
                 updateScore();
