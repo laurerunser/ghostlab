@@ -49,7 +49,7 @@ public class GamePanel extends JPanel {
         grid = new JPanel(new GridLayout(width, height));
         blocks = new JButton[width][height];
 
-        for (int i = 0; i < width; i++) {
+        for (int i = width; i < 0; i--) {
             for (int j = 0; j < height; j++) {
                 if (i == current_x && j == current_y) { // place current player (in blue)
                     JButton player = new JButton();
