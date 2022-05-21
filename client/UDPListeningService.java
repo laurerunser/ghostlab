@@ -1,6 +1,4 @@
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
 
 public class UDPListeningService implements Runnable{
     DatagramSocket dso;
@@ -8,11 +6,12 @@ public class UDPListeningService implements Runnable{
 
     GamePanel gamePanel;
 
-    public UDPListeningService(String ip, int port, GamePanel gamePanel) {
+    public UDPListeningService(GamePanel gamePanel) {
         this.gamePanel = gamePanel;
+
         game_ended = false;
         try {
-            dso = new DatagramSocket(port, InetAddress.getByName(ip));
+            dso = new DatagramSocket(Client.playerUDPPort);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);

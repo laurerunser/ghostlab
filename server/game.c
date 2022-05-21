@@ -548,6 +548,7 @@ void send_endgame_multicast(game_data *game) {
 void send_message_to_all(player_data *this_player, game_data *game) {
     // read the message and send the multicast
     struct sockaddr_in addr;
+    addr.sin_port = htons(4444 + this_player->game_number);
     inet_pton(AF_INET, MULTICAST_ADDR, &addr.sin_addr);
     long length_of_message = read_and_send_message(game->multicast_socket, addr,
                                                    "MALL?", "MESSA", "MALL!", this_player);

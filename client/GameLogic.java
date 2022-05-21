@@ -14,13 +14,13 @@ public class GameLogic {
 
     public static String broadcast_ip;
     public static int broadcast_port;
-
     public static PlayerInfo[] players;
     public static PlayerInfo this_player;
 
     public static GamePanel game_panel;
 
     public static void receiveWelcomeMessage() throws IncorrectMessageException, IOException, InterruptedException {
+
         // receive WELCO
         byte[] welco = new byte[39];
         int res = Client.tcp_socket_reader.read(welco, 0, 39);
@@ -84,8 +84,7 @@ public class GameLogic {
     }
 
     public static void make_udp_threads() throws InterruptedException {
-        UDPListeningService udp_service = new UDPListeningService(broadcast_ip, broadcast_port,
-                game_panel);
+        UDPListeningService udp_service = new UDPListeningService(game_panel);
         MulticastListeningService multicast_service = new MulticastListeningService(broadcast_ip,
                 broadcast_port, udp_service, game_panel);
 
