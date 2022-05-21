@@ -44,24 +44,24 @@ void add_walls_and_default_pos() {
 
     // add players positions
     int *x = mazes[0].x_start;
-    x[0] = 3;
-    x[1] = 0;
+    x[0] = 0;
+    x[1] = 1;
     x[2] = 5;
-    x[3] = 1;
+    x[3] = 5;
     int *y = mazes[0].y_start;
-    y[0] = 0;
-    y[1] = 1;
-    y[2] = 5;
-    y[3] = 5;
+    y[0] = 2;
+    y[1] = 5;
+    y[2] = 4;
+    y[3] = 1;
 
     // add players to the maze
-    m[0][3] = 3;
-    m[1][0] = 3;
-    m[5][5] = 3;
+    m[0][2] = 3;
+    m[1][5] = 3;
+    m[5][4] = 3;
     m[5][1] = 3;
 
     // add ghosts
-    m[1][1] = 2;
+    m[1][2] = 2;
     m[3][2] = 2;
     m[3][3] = 2;
     m[3][4] = 3;
