@@ -1,10 +1,27 @@
-#include "test.h"
+#include "include/test.h"
 extern game_data games[];
 extern maze_data mazes[];
 
 void add_walls_and_default_pos() {
     int** m = mazes[0].maze;
 
+    int tab[7][6]={
+        {1, 1, 1, 0, 1, 1},
+        {0, 0, 0, 0, 0, 1},
+        {1, 1, 1, 1, 0, 1},
+        {1, 0, 0, 0, 0, 1},
+        {1, 0, 0, 0, 0, 1},
+        {1, 0, 1, 1, 0, 0},
+        {1, 0, 1, 1, 1, 1}};
+    
+    for (int i = 0; i<7; i++) {
+        for (int j = 0; j<6; j++) {
+            m[i][0]= tab[i][j];
+        }
+    }
+
+    
+/*
     // add walls
     for (int i = 0; i<6; i++) {
         m[i][0] = 1;
@@ -23,6 +40,7 @@ void add_walls_and_default_pos() {
     m[3][5] = 1;
     m[3][6] = 1;
     m[4][6] = 1;
+    */
 
     // add players positions
     int *x = mazes[0].x_start;
