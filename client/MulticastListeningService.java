@@ -1,5 +1,6 @@
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 
 public class MulticastListeningService implements Runnable {
@@ -20,7 +21,7 @@ public class MulticastListeningService implements Runnable {
 
         try {
             // make the socket
-            mso = new MulticastSocket();
+            mso = new MulticastSocket(multicast_port);
 
             // join the group
             mso.joinGroup(InetAddress.getByName(multicast_ip));
