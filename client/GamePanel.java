@@ -259,11 +259,11 @@ public class GamePanel extends JPanel {
         // update the player on the grid
         JButton old_pos = blocks[current_y][current_x];
         old_pos.setBackground(Color.LIGHT_GRAY);
-        old_pos.setBackground(Color.DARK_GRAY);
+        old_pos.setBorder(new LineBorder(Color.DARK_GRAY));
 
         JButton new_pos = blocks[new_y][new_x];
         new_pos.setBackground(Color.BLUE);
-        new_pos.setBackground(Color.BLACK);
+        new_pos.setBorder(new LineBorder(Color.BLACK));
 
         // update current position variables
         current_x = new_x;
