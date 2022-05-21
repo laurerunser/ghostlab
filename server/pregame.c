@@ -274,12 +274,10 @@ bool handle_start_message(int sock_fd, player_data current_player) {
     // check if the game is ready to start
     bool ready_to_start = true;
     if (games[current_player.game_number].nb_players < 4) {
-        fprintf(stdout, "not enough players\n");
         ready_to_start = false;
     }
     for (int i = 0; i < 4; i++) {
         if (!games[current_player.game_number].players[i].sent_start) {
-            fprintf(stdout, "player %d didn't send start\n", i);
             ready_to_start = false;
         }
     }
