@@ -221,7 +221,7 @@ public class GameLogic {
     public static boolean send_personal_message(String message, String recipient_id) {
         // send the message
         String mess = String.format("SEND? %s %s***", recipient_id, message);
-        byte[] buf = message.getBytes(StandardCharsets.UTF_8);
+        byte[] buf = mess.getBytes(StandardCharsets.UTF_8);
 
         try {
             Client.tcp_socket_writer.write(buf);
@@ -265,7 +265,7 @@ public class GameLogic {
      */
     public static void send_general_message(String message) {
         String mess = String.format("MALL? %s***", message);
-        byte[] buf = message.getBytes(StandardCharsets.UTF_8);
+        byte[] buf = mess.getBytes(StandardCharsets.UTF_8);
 
         try {
             Client.tcp_socket_writer.write(buf);
