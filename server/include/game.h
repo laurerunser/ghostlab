@@ -31,12 +31,14 @@ int receive_move_message(char *context, char *buf, player_data *this_player);
 
 /*
  * steps : the max number of steps to take
- * context : "UP" or "DOWN" // "LEFT" or "RIGHT"
- * direction : 1 to go up/right, -1 to go down/left
- */
-void move_vertical(int steps, char *context, int direction, player_data *this_player);
+*/
+void move_up(int steps, player_data *this_player);
 
-void move_horizontal(int steps, char *context, int direction, player_data *this_player);
+void move_down(int steps, player_data *this_player);
+
+void move_left(int steps, player_data *this_player);
+
+void move_right(int steps, player_data *this_player);
 
 void send_MOVEF(player_data *this_player);
 

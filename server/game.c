@@ -57,17 +57,16 @@ void handle_game_requests(player_data *this_player) {
         // handle the message depending on the header
         if (strncmp("UPMOV", buf, 5) == 0) {
             int steps = receive_move_message("UPMOV", buf, this_player);
-            move_vertical(steps, "UP", 1, this_player);
+            move_up(steps, this_player);
         } else if (strncmp("DOMOV", buf, 5) == 0) {
             int steps = receive_move_message("DOMOV", buf, this_player);
-            move_vertical(steps, "DOWN", -1, this_player);
+            move_down(steps, this_player);
         } else if (strncmp("LEMOV", buf, 5) == 0) {
             int steps = receive_move_message("LEMOV", buf, this_player);
-            move_horizontal(steps, "LEFT", -1, this_player);
+            move_left(steps, this_player);
         } else if (strncmp("RIMOV", buf, 5) == 0) {
             int steps = receive_move_message("RIMOV", buf, this_player);
-            move_horizontal(steps, "RIGHT", 1, this_player);
-
+            move_right(steps, this_player);
         } else if (strncmp("IQUIT", buf, 5) == 0) {
             player_quits(this_player);
             // read end of message
@@ -154,40 +153,36 @@ int receive_move_message(char *context, char *buf, player_data *this_player) {
     }
     fprintf(stderr, "fd %d : received %s message\n", this_player->tcp_socket, context);
     char *ptr;
+    printf("A");
     int d = (int) strtol(&buf[6], &ptr, 10);
     if (ptr == NULL) {
         fprintf(stderr, "Conversion error reading the nb of steps in [%s], string was %s\n",
                 context, &buf[6]);
         return -1;
     }
+    printf("B");
     return d;
 }
 
-void move_vertical(int steps, char *context, int direction, player_data *this_player) {
+void move_up(int steps, player_data *this_player) {
     if (steps == -1) {
-        return; // the header message wasn't read properly in the previous method
+        return; // the header message wasn't read properly
     }
-    printf("a");
-    bool captured_a_ghost = false;
+
+    bool captured = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
 
-    printf("b");
     for (int i = 0; i < steps; i++) {
-        if (direction == 1 && this_player->y + 1 >= maze->height) {
-            break; // can't go up
-        }
+        if (this_player->y + 1 == maze->height) {
+            fprintf(stderr, "fd %d, already at the top of the maze, can't move\n", this_player->tcp_socket);
+            break; // this is the top of the maze, can't go up
+        } else if (maze->maze[this_player->x][this_player->y + 1] == 0) {
+            this_player->y += 1; // empty space, can move up one block
+        } else if (maze->maze[this_player->x][this_player->y + 1] == 2) {
+            this_player->y += 1; // move up
 
-        printf("c");
-        if (direction == -1 && this_player->y - 1 < 0) {
-            break; // can't go down
-        } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 0) { // free space
-            this_player->y += 1; // move
-            printf("d");
-        } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 2) { // ghost
-            printf("e");
-            this_player->y += 1; // move
             // remove the ghost
-            captured_a_ghost = true;
+            captured = true;
             maze->maze[this_player->x][this_player->y] = 0;
             maze->nb_ghosts -= 1;
 
@@ -200,51 +195,58 @@ void move_vertical(int steps, char *context, int direction, player_data *this_pl
             printf("i");
             send_score_multicast(this_player);
 
-            printf("j");
+            // if this was the last ghost, this is the end of the game
+            // this MUST be here (== at the capture of the ghost) and
+            // not in the has_game_ended method because otherwise several
+            // threads could send the message at the same time
+            if (game->nb_ghosts_left == 0) {
+                send_endgame_multicast(this_player);
+            }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
-                    this_player->x, this_player->y);
+                    this_player->x, this_player->y + 1);
             printf("k");
             break;
         }
-
-        printf("l");
     }
 
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, context,
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, "UP",
             this_player->x, this_player->y);
 
     // send message(s) with new position
-    if (captured_a_ghost) {
+    if (captured) {
         send_MOVEF(this_player);
     } else {
         send_MOVE(this_player);
     }
 }
 
-void move_horizontal(int steps, char *context, int direction, player_data *this_player) {
+
+void move_down(int steps, player_data *this_player) {
     if (steps == -1) {
-        return; // the header message wasn't read properly in the previous method
+        return; // the header message wasn't read properly
     }
-    bool captured_a_ghost = false;
+
+    bool captured = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
+
     for (int i = 0; i < steps; i++) {
-        if (direction == 1 && this_player->x + 1 >= maze->width) {
-            break; // can't go up
-        }
-        if (direction == -1 && this_player->x - 1 < 0) {
-            break; // can't go down
-        } else if (maze->maze[this_player->x + 1 * direction][this_player->y] == 0) { // free space
-            this_player->x += 1; // move
-        } else if (maze->maze[this_player->x + 1 * direction][this_player->y] == 2) { // ghost
-            this_player->x += 1; // move
+        if (this_player->y - 1 == -1) {
+            fprintf(stderr, "fd %d, already at the bottom of the maze, can't move\n", this_player->tcp_socket);
+            break; // this is the bottom of the maze, can't go down
+        } else if (maze->maze[this_player->x][this_player->y - 1] == 0) {
+            this_player->y -= 1; // empty space, can move down one block
+        } else if (maze->maze[this_player->x][this_player->y - 1] == 2) {
+            this_player->y -= 1; // move up
+
             // remove the ghost
-            captured_a_ghost = true;
+            captured = true;
             maze->maze[this_player->x][this_player->y] = 0;
-            game->nb_ghosts_left -= 1;
+            maze->nb_ghosts -= 1;
+
             // increase score
             this_player->score += 10;
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
@@ -260,7 +262,8 @@ void move_horizontal(int steps, char *context, int direction, player_data *this_
             }
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
-                    this_player->x, this_player->y);
+                    this_player->x, this_player->y - 1);
+            printf("k");
             break;
         }
     }
@@ -268,7 +271,117 @@ void move_horizontal(int steps, char *context, int direction, player_data *this_
     // put the player in their new place in the maze
     maze->maze[this_player->x][this_player->y] = 3;
     pthread_mutex_unlock(&mutex);
-    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, context,
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, "DOWN",
+            this_player->x, this_player->y);
+
+    // send message(s) with new position
+    if (captured) {
+        send_MOVEF(this_player);
+    } else {
+        send_MOVE(this_player);
+    }
+}
+
+void move_left(int steps, player_data *this_player) {
+    if (steps == -1) {
+        return; // the header message wasn't read properly in the previous method
+    }
+
+    bool captured_a_ghost = false;
+    pthread_mutex_lock(&mutex); // protect the maze while moving the player
+    for (int i = 0; i < steps; i++) {
+        if (this_player->x - 1 == -1) {
+            fprintf(stderr, "fd %d : already at the left of the maze, can't move\n", this_player->tcp_socket);
+            break; // can't go left
+        } else if (maze->maze[this_player->x - 1][this_player->y] == 0) { // free space
+            this_player->x -= 1; // move
+        } else if (maze->maze[this_player->x - 1][this_player->y] == 2) { // ghost
+            this_player->x -= 1; // move
+
+            // remove the ghost
+            captured_a_ghost = true;
+            maze->maze[this_player->x][this_player->y] = 0;
+            game->nb_ghosts_left -= 1;
+
+            // increase score
+            this_player->score += 10;
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
+                    this_player->y);
+            send_score_multicast(this_player);
+
+            // if this was the last ghost, this is the end of the game
+            // this MUST be here (== at the capture of the ghost) and
+            // not in the has_game_ended method because otherwise several
+            // threads could send the message at the same time
+            if (game->nb_ghosts_left == 0) {
+                send_endgame_multicast(this_player);
+            }
+        } else { // wall or another player : blocked
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
+                    this_player->x - 1, this_player->y);
+            break;
+        }
+    }
+
+    // put the player in their new place in the maze
+    maze->maze[this_player->x][this_player->y] = 3;
+    pthread_mutex_unlock(&mutex);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, "LEFT",
+            this_player->x, this_player->y);
+
+    // send message(s) with new position
+    if (captured_a_ghost) {
+        send_MOVEF(this_player);
+    } else {
+        send_MOVE(this_player);
+    }
+}
+
+void move_right(int steps, player_data *this_player) {
+    if (steps == -1) {
+        return; // the header message wasn't read properly in the previous method
+    }
+
+    bool captured_a_ghost = false;
+    pthread_mutex_lock(&mutex); // protect the maze while moving the player
+    for (int i = 0; i < steps; i++) {
+        if (this_player->x + 1 == maze->width) {
+            fprintf(stderr, "fd %d : already at the right of the maze, can't move\n", this_player->tcp_socket);
+            break; // can't go right
+        } else if (maze->maze[this_player->x + 1][this_player->y] == 0) { // free space
+            this_player->x += 1; // move
+        } else if (maze->maze[this_player->x + 1][this_player->y] == 2) { // ghost
+            this_player->x += 1; // move
+
+            // remove the ghost
+            captured_a_ghost = true;
+            maze->maze[this_player->x][this_player->y] = 0;
+            game->nb_ghosts_left -= 1;
+
+            // increase score
+            this_player->score += 10;
+            fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
+                    this_player->y);
+            send_score_multicast(this_player);
+
+            // if this was the last ghost, this is the end of the game
+            // this MUST be here (== at the capture of the ghost) and
+            // not in the has_game_ended method because otherwise several
+            // threads could send the message at the same time
+            if (game->nb_ghosts_left == 0) {
+                send_endgame_multicast(this_player);
+            }
+        } else { // wall or another player : blocked
+            fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
+                    this_player->x + 1, this_player->y);
+            break;
+        }
+    }
+
+    // put the player in their new place in the maze
+    maze->maze[this_player->x][this_player->y] = 3;
+    pthread_mutex_unlock(&mutex);
+    fprintf(stderr, "fd %d : moved %s to x=%d, y=%d\n", this_player->tcp_socket, "RIGHT",
             this_player->x, this_player->y);
 
     // send message(s) with new position
