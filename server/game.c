@@ -71,9 +71,6 @@ void handle_game_requests(player_data *this_player) {
             player_quits(this_player);
             // read end of message
             res = recv(this_player->tcp_socket, buf, 3, 0);
-            if (!isRecvRightLength(res, 3, "IQUIT")) {
-                break; // ignore incomplete message
-            }
         } else if (strncmp("GLIS?", buf, 5) == 0) {
             send_list_of_players_for_game(this_player);
             // read end of message
@@ -457,6 +454,8 @@ void player_quits(player_data *this_player) {
     // make this_player a placeholder so that the main function
     // will know to exit and kill this thread
     this_player->is_a_player = false;
+
+    fprintf(stderr, "Player %d quits\n", this_player->tcp_socket);
 
     // no need to send the GOBYE message, it is sent
     // automatically at the end of the main function.

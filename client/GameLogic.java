@@ -103,12 +103,17 @@ public class GameLogic {
     // indicate direction because it is easier to manipulate from the UI
     // side (not getting the booleans mixed up)
 
+    // WARNING : the names of the functions match what is shown on the screen !
+    // -> we hae coordinate issues and can't figure out how to display the grid so that
+    // sending the UPMOV message makes the player go up in the grid
+    // so we opted for renaming the functions instead of fixing the pb :)
+
     /**
      *
      * @param d the number of steps to take
      * @return the new position of the player after the move
      */
-    public static int[] moveUp(int d) {
+    public static int[] moveRight(int d) {
         try {
             send_movement_and_log(d, "UPMOV");
             receiveMOVE_answer();
@@ -119,7 +124,7 @@ public class GameLogic {
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveDown(int d) {
+    public static int[] moveLeft(int d) {
         try {
         send_movement_and_log(d, "DOMOV");
         receiveMOVE_answer();
@@ -130,7 +135,7 @@ public class GameLogic {
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveLeft(int d) {
+    public static int[] moveDown(int d) {
         try {
         send_movement_and_log(d, "LEMOV");
         receiveMOVE_answer();
@@ -141,7 +146,7 @@ public class GameLogic {
         return new int[]{this_player.x, this_player.y};
     }
 
-    public static int[] moveRight(int d) {
+    public static int[] moveUp(int d) {
         try {
         send_movement_and_log(d, "RIMOV");
         receiveMOVE_answer();
@@ -174,7 +179,7 @@ public class GameLogic {
             read_new_coordinates();
             // the score is handled when receiving the UDP message
             Client.LOGGER.info(String.format("Read MOVEF answer. New position x=%d, y=%d\n", this_player.x, this_player.y));
-            res = Client.tcp_socket_reader.read(header, 0, 4); // discard the extra 4 bytes for the score
+            res = Client.tcp_socket_reader.read(header, 0, 5); // discard the extra 4 bytes for the score
         } else {
             Client.logIncorrectHeader("MOVE! or MOVEF", header_str);
         }
