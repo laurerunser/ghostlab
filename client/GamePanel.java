@@ -272,12 +272,21 @@ public class GamePanel extends JPanel {
     }
 
     public void show_quit_dialog() {
-        JDialog dialog = new JDialog();
-        dialog.add(new JLabel("You've quit the game. Click on OK to close the program"));
+        JFrame dialog = new JFrame();
+        JPanel panel = new JPanel();
+        dialog.add(panel);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
 
+        JLabel label = new JLabel("You've quit the game. \nClick on OK to close the program");
+
+        panel.add(label);
+        
         JButton ok = new JButton("OK");
         ok.addActionListener(e -> System.exit(1));
-        dialog.add(ok);
+        
+        panel.add(ok);
+
+        dialog.setSize(300, 100);
 
         dialog.setVisible(true);
     }
