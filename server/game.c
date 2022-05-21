@@ -163,36 +163,52 @@ int receive_move_message(char *context, char *buf, player_data *this_player) {
     return d;
 }
 
-
-// TODO refactor into one method
-// or at least refactor the bits that are the same
 void move_vertical(int steps, char *context, int direction, player_data *this_player) {
+    if (steps == -1) {
+        return; // the header message wasn't read properly in the previous method
+    }
+    printf("a");
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
+
+    printf("b");
     for (int i = 0; i < steps; i++) {
         if (direction == 1 && this_player->y + 1 >= maze->height) {
             break; // can't go up
         }
+
+        printf("c");
         if (direction == -1 && this_player->y - 1 < 0) {
             break; // can't go down
         } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 0) { // free space
             this_player->y += 1; // move
+            printf("d");
         } else if (maze->maze[this_player->x][this_player->y + 1 * direction] == 2) { // ghost
+            printf("e");
             this_player->y += 1; // move
             // remove the ghost
             captured_a_ghost = true;
             maze->maze[this_player->x][this_player->y] = 0;
             maze->nb_ghosts -= 1;
+
+            printf("g");
             // increase score
             this_player->score += 10;
+            printf("h");
             fprintf(stderr, "fd %d : captured a ghost on x=%d, y=%d\n", this_player->tcp_socket, this_player->x,
                     this_player->y);
+            printf("i");
             send_score_multicast(this_player);
+
+            printf("j");
         } else { // wall or another player : blocked
             fprintf(stderr, "fd %d : ran into a wall at x=%d y=%d\n", this_player->tcp_socket,
                     this_player->x, this_player->y);
+            printf("k");
             break;
         }
+
+        printf("l");
     }
 
     // put the player in their new place in the maze
@@ -210,6 +226,9 @@ void move_vertical(int steps, char *context, int direction, player_data *this_pl
 }
 
 void move_horizontal(int steps, char *context, int direction, player_data *this_player) {
+    if (steps == -1) {
+        return; // the header message wasn't read properly in the previous method
+    }
     bool captured_a_ghost = false;
     pthread_mutex_lock(&mutex); // protect the maze while moving the player
     for (int i = 0; i < steps; i++) {

@@ -33,14 +33,5 @@ public class Ui extends JFrame {
         CardLayout cards = (CardLayout) rootPanel.getLayout();
         cards.show(rootPanel, "game");
     }
-
-    public static void timeout() {
-        JFrame error = new JFrame();
-        error.setTitle("Error");
-        JOptionPane.showMessageDialog(error, "Server take too long to respond");
-        error.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        error.setVisible(true);
-        System.exit(2);
-    }
 }
 
