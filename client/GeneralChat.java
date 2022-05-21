@@ -4,7 +4,7 @@ import java.awt.*;
 public class GeneralChat extends JPanel {
 
     public GeneralChat() {
-        JTextField txtField = new JTextField(200);
+        JTextField txtField = new JTextField(10);
 
         JButton sendButton = new JButton("SEND");
         sendButton.addActionListener(e -> {

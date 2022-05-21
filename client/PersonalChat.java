@@ -33,7 +33,7 @@ public class PersonalChat extends JPanel {
 
             this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-            JTextField txtField = new JTextField(200);
+            JTextField txtField = new JTextField(10);
 
             JButton sendButton = new JButton("SEND");
             sendButton.addActionListener(e -> {
