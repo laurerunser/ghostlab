@@ -131,6 +131,11 @@ void send_initial_position(player_data *this_player) {
     this_player->x = maze->x_start[this_player->player_number];
     this_player->y = maze->y_start[this_player->player_number];
 
+    // add the player into the maze
+    pthread_mutex_lock(&mutex);
+    maze[this_player->x][this_player->y] = 3;
+    pthread_mutex_unlock(&mutex);
+
     // add position to message
     char *x_str = int_to_3_bytes(this_player->x);
     char *y_str = int_to_3_bytes_with_stars(this_player->y);

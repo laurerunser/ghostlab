@@ -35,6 +35,11 @@ void add_walls_and_default_pos() {
     y[1] = 1;
     y[2] = 5;
     y[3] = 5;
+
+    // add ghosts
+    for (int i = 0; i < 4; i++) {
+        m[1][i] = 2;
+    }
 }
 
 void init_test_1() {
