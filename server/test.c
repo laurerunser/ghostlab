@@ -34,7 +34,7 @@ void add_walls_and_default_pos() {
     y[0] = 0;
     y[1] = 1;
     y[2] = 5;
-    y[3] = 6;
+    y[3] = 5;
 }
 
 void init_test_1() {
