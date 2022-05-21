@@ -49,7 +49,7 @@ public class GamePanel extends JPanel {
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                if (i == current_x && j == current_y) { // place current player (in blue)
+                if (i == current_y && j == current_x) { // place current player (in blue)
                     JButton player = new JButton();
                     player.setBorder(new LineBorder(Color.BLACK));
                     player.setBackground(Color.BLUE);
@@ -91,11 +91,11 @@ public class GamePanel extends JPanel {
         JPanel controls = new JPanel(new BorderLayout());
 
         JButton up = new JButton("UP");
-        up.addActionListener(e -> move_down(1));
+        up.addActionListener(e -> move_up(1));
         controls.add(up, BorderLayout.NORTH);
 
         JButton down = new JButton("DOWN");
-        down.addActionListener(e -> move_up(1));
+        down.addActionListener(e -> move_down(1));
         controls.add(down, BorderLayout.SOUTH);
 
         JButton left = new JButton("LEFT");
@@ -253,11 +253,11 @@ public class GamePanel extends JPanel {
         }
 
         // update the player on the grid
-        JButton old_pos = (JButton)grid.getComponentAt(current_x, current_y);
+        JButton old_pos = (JButton) grid.getComponentAt(current_y, current_x);
         old_pos.setBackground(Color.LIGHT_GRAY);
         old_pos.setBackground(Color.DARK_GRAY);
 
-        JButton new_pos = (JButton)grid.getComponentAt(new_x, new_y);
+        JButton new_pos = (JButton) grid.getComponentAt(new_y, new_x);
         new_pos.setBackground(Color.BLUE);
         new_pos.setBackground(Color.BLACK);
 
