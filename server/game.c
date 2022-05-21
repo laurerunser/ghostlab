@@ -549,15 +549,21 @@ void send_message_to_all(player_data *this_player, game_data *game) {
     // read the message and send the multicast
     struct sockaddr_in addr;
     addr.sin_port = htons(4444 + this_player->game_number);
+
     inet_pton(AF_INET, MULTICAST_ADDR, &addr.sin_addr);
+
+    printf("c\n");
     long length_of_message = read_and_send_message(game->multicast_socket, addr,
                                                    "MALL?", "MESSA", "MALL!", this_player);
-
+    printf("d\n");
     // recv the complete MALL? message
     char buf[length_of_message];
     long length_to_recv = length_of_message; // stars included in the length
+    printf("e\n");
     long res = recv(this_player->tcp_socket, buf, length_to_recv, 0);
+    printf("g\n");
     isRecvRightLength(res, length_to_recv, "MALL?");
+    printf("h\n");
 }
 
 void send_personal_message(player_data *this_player, game_data *game) {
@@ -584,15 +590,18 @@ void send_personal_message(player_data *this_player, game_data *game) {
                 this_player->tcp_socket, &id[1]);
         return;
     }
+    printf("d\n");
 
     // read the message and send the multicast
     long length_of_message = read_and_send_message(recipient->udp_socket, *recipient->address,
                                                    "SEND?", "MESSP", "SEND!", this_player);
-
+    printf("e\n");
     // recv the complete SEND? message
     char buf[length_of_message]; // stars included in the length
     long length_to_recv = length_of_message;
+    printf("f\n");
     res = recv(this_player->tcp_socket, buf, length_to_recv, 0);
+    printf("g\n");
     isRecvRightLength(res, length_to_recv, "SEND?");
 }
 
@@ -606,7 +615,6 @@ long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *co
     char buf[205];
     recv(this_player->tcp_socket, buf, 204, MSG_PEEK);
     buf[204] = '\0'; // to treat it as a string
-
     // find where the message ends
     char *start_of_stars = strstr(buf, "***");
     if (start_of_stars == NULL) { // didn't find a "***" in the string
@@ -615,28 +623,31 @@ long read_and_send_message(int socketfd, struct sockaddr_in their_addr, char *co
         return -1;
     }
     // the length of the message to send is the difference between the beginning and the end pointers
-    long lenght_of_message = start_of_stars - buf;
+    long length_of_message = start_of_stars - buf;
 
     // copy only the relevant portion (== the message to send)
-    char *message;
-    memmove(message, buf, lenght_of_message);
+    char *message = malloc(length_of_message);
+    memmove(message, buf, length_of_message);
 
     // make MESSA message
     // length of message + 6 (header+space) + 8 (id) + 1 (space between id and message) + 3 stars
-    long length_to_send = lenght_of_message + 6 + 8 + 1 + 3;
+    long length_to_send = length_of_message + 6 + 8 + 1 + 3;
     char complete_message[length_to_send];
     sprintf(complete_message, "%s %s %s+++", header_to_send, this_player->id, message);
-
+    printf("8\n");
     // send multicast message;
-    sendto(socketfd, complete_message, length_to_send, 0,
-           (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
+    int res = sendto(socketfd, complete_message, length_to_send, 0,
+                     (struct sockaddr *) &their_addr, sizeof(struct sockaddr_in));
+    printf("%d\n", res);
     fprintf(stderr, "Sent %s message from player fd = %d\n", header_to_send, this_player->tcp_socket);
-
+    printf("9\n");
     // send acknowledgement to initial sender
     char *ack;
     sprintf(ack, "%s***", ack_to_send);
     send_all(this_player->tcp_socket, ack, 8);
+    printf("10\n");
     fprintf(stderr, "Sent %s acknowledgement to player fd=%d\n", ack_to_send, this_player->tcp_socket);
 
-    return lenght_of_message;
+    free(message);
+    return length_of_message;
 }
