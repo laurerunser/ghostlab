@@ -16,7 +16,7 @@ void add_walls_and_default_pos() {
     
     for (int i = 0; i<7; i++) {
         for (int j = 0; j<6; j++) {
-            m[i][0]= tab[i][j];
+            m[i][j]= tab[i][j];
         }
     }
 
